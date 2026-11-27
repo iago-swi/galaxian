@@ -103,7 +103,10 @@ const SFX = (() => {
       l.start(); l.stop(ac.currentTime + 0.9);
     },
     power() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone('triangle', f, 0, 0.2, 0.1, { t: ac ? ac.currentTime + i * 0.055 : 0, echo: 0.5 })); },
-    shieldBreak() { burst(0.35, 0.22, 7000, 500, { type: 'bandpass', echo: 0.4 }); tone('sine', 880, 220, 0.3, 0.12, { echo: 0.4 }); },
+    shieldUp() { tone('sine', 300, 1300, 0.35, 0.12, { a: 0.02, echo: 0.5 }); burst(0.3, 0.08, 1500, 8000, { type: 'bandpass', echo: 0.3 }); },
+    shieldHit() { tone('sine', 1500, 700, 0.12, 0.08, { echo: 0.4 }); },
+    hatch() { burst(0.12, 0.2, 5000, 1200, { type: 'bandpass' }); tone('square', 900, 1800, 0.14, 0.06, { lp: 4000, echo: 0.4 }); },
+    clang() { tone('square', 520, 500, 0.09, 0.06, { lp: 2500 }); tone('triangle', 1310, 1290, 0.12, 0.05, { echo: 0.3 }); },
     die() {
       burst(1.3, 0.5, 5000, 60, { echo: 0.3 });
       tone('sawtooth', 420, 28, 1.2, 0.26, { lp: 1400 });

@@ -4,7 +4,7 @@
    All sizes are in playfield units; the atlas is rendered at SS x for sharpness.
 --------------------------------------------------------------------------- */
 const ART = (() => {
-  const SS = 2, SIZE = 2048, PAD = 12, TAU = Math.PI * 2;
+  const SS = 2, SIZE = 2048, PAD = 12, TAU = Math.PI * 2, CORE_Y = 22;
   const canvas = document.createElement('canvas');
   const sprites = {};
   let c, cx = PAD, cy = PAD, rowH = 0;
@@ -12,6 +12,7 @@ const ART = (() => {
   function add(name, w, h, draw) {
     const pw = Math.ceil(w * SS), ph = Math.ceil(h * SS);
     if (cx + pw + PAD > SIZE) { cx = PAD; cy += rowH + PAD; rowH = 0; }
+    if (cy + ph + PAD > SIZE) console.error('atlas is full: ' + name);
     c.save();
     c.beginPath(); c.rect(cx, cy, pw, ph); c.clip();
     c.translate(cx + pw / 2, cy + ph / 2); c.scale(SS, SS);
@@ -65,7 +66,8 @@ const ART = (() => {
     },
   };
 
-  function bird(p, o) {
+  // part: undefined = whole bird, 'body' = tail, body and head, 'wing' = the right wing alone
+  function bird(p, o, part) {
     const f = Math.sin(p), g = Math.cos(p);
     const s = 1 - o.fold * (0.5 - 0.5 * f), span = o.span * s;          // raised wings look shorter from above
     const yF = o.wingY, yR = yF - o.chord, cy = (yF + yR) / 2;
@@ -77,6 +79,7 @@ const ART = (() => {
 
     // tail
     const tw = o.tailW, tl = o.tailL, sway = g * 0.8;
+    if (part !== 'wing') {
     c.beginPath(); c.moveTo(-2.6, yT);
     if (o.tail === 'fork') { c.lineTo(-tw + sway, yT - tl); c.lineTo(sway * 0.5, yT - tl * 0.42); c.lineTo(tw + sway, yT - tl); }
     else if (o.tail === 'wedge') { c.lineTo(-tw + sway, yT - tl * 0.68); c.lineTo(sway, yT - tl); c.lineTo(tw + sway, yT - tl * 0.68); }
@@ -91,8 +94,9 @@ const ART = (() => {
       c.beginPath(); c.moveTo(k * 2, yT - 2); c.lineTo(k * tw * 1.2 + sway, yT - tl * (o.tail === 'fork' ? 0.55 : 0.85)); c.stroke();
     }
     c.globalAlpha = 1;
+    }
 
-    for (const sg of [-1, 1]) {
+    for (const sg of part === 'wing' ? [1] : part === 'body' ? [] : [-1, 1]) {
       // splayed primary feathers at the wing tip
       if (o.fingers) {
         const bx = wrX + (tipX - wrX) * 0.45, by = wrY + (tipY - wrY) * 0.45, w = 2.4;
@@ -138,6 +142,7 @@ const ART = (() => {
       c.globalAlpha = 1;
     }
 
+    if (part === 'wing') return;
     // body and head
     glow(o.glow, 6);
     c.fillStyle = o.dark; c.strokeStyle = o.light; c.lineWidth = 1.1;
@@ -225,8 +230,113 @@ const ART = (() => {
       for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(0, 0, 43, k * TAU / 3, k * TAU / 3 + 0.7); c.stroke(); }
     });
 
-    for (const [name, size] of [['swallow', 72], ['gull', 72], ['falcon', 72], ['raven', 96]])
-      for (let f = 0; f < 4; f++) add(name + f, size, size, () => bird(f / 4 * TAU, BIRDS[name]));
+    for (const name of ['swallow', 'gull', 'falcon'])
+      for (let f = 0; f < 4; f++) add(name + f, 72, 72, () => bird(f / 4 * TAU, BIRDS[name]));
+    // the great raven is kept in pieces: the body, and one wing that is mirrored for the other side
+    for (let f = 0; f < 4; f++) {
+      add('ravenB' + f, 96, 96, () => bird(f / 4 * TAU, BIRDS.raven, 'body'));
+      add('ravenW' + f, 96, 96, () => bird(f / 4 * TAU, BIRDS.raven, 'wing'));
+    }
+
+    // egg of a great raven: dark shell, glowing veins
+    add('egg', 48, 60, () => {
+      c.beginPath();
+      c.moveTo(0, -24); c.bezierCurveTo(13, -24, 18, -4, 18, 6); c.bezierCurveTo(18, 18, 9, 25, 0, 25);
+      c.bezierCurveTo(-9, 25, -18, 18, -18, 6); c.bezierCurveTo(-18, -4, -13, -24, 0, -24); c.closePath();
+      glow('#20ff90', 8);
+      c.fillStyle = rgrad(-4, -6, 2, 0, 2, 26, [[0, 'rgba(20,60,44,0.97)'], [0.6, 'rgba(4,16,14,0.97)'], [1, 'rgba(2,8,10,0.97)']]);
+      c.fill(); c.strokeStyle = '#d0ffe6'; c.lineWidth = 1.3; c.stroke();
+      c.save(); c.clip();
+      c.strokeStyle = 'rgba(60,255,160,0.95)'; c.lineWidth = 1.1; glow('#20ff90', 5);
+      for (const [x0, y0, pts] of [[-3, -24, [[2, -14], [-5, -6], [3, 3], [-2, 12], [4, 25]]], [-5, -6, [[-12, -1], [-18, 8]]], [3, 3, [[11, 7], [18, 4]]], [-2, 12, [[-9, 17], [-12, 25]]], [2, -14, [[9, -11], [14, -16]]]]) {
+        c.beginPath(); c.moveTo(x0, y0); pts.forEach(([x, y]) => c.lineTo(x, y)); c.stroke();
+      }
+      c.restore(); noGlow();
+      c.fillStyle = 'rgba(255,255,255,0.22)'; c.beginPath(); c.ellipse(-7, -11, 3, 6.5, 0.45, 0, TAU); c.fill();
+    });
+
+    // the Aerie: armour plate, its eye, the lid over the eye, and the hull
+    add('plate', 26, 18, () => {
+      glow('#ffffff', 3);
+      c.fillStyle = grad(0, -6, 0, 6, [[0, 'rgba(255,255,255,0.95)'], [1, 'rgba(150,150,150,0.9)']]);
+      c.beginPath(); c.roundRect(-9.5, -5.5, 19, 11, 2.5); c.fill();
+      noGlow(); c.strokeStyle = 'rgba(0,0,0,0.45)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(-5, 0); c.lineTo(5, 0); c.stroke();
+    });
+    add('core', 64, 64, () => {
+      glow('#ff3060', 10);
+      c.fillStyle = rgrad(0, 0, 1, 0, 0, 24, [[0, 'rgba(255,255,255,1)'], [0.35, 'rgba(255,190,200,1)'], [0.7, 'rgba(255,50,90,0.98)'], [1, 'rgba(140,0,50,0.9)']]);
+      c.beginPath(); c.arc(0, 0, 24, 0, TAU); c.fill();
+      noGlow();
+      c.strokeStyle = 'rgba(255,230,235,0.8)'; c.lineWidth = 1.2; c.beginPath(); c.arc(0, 0, 19, 0, TAU); c.stroke();
+      c.strokeStyle = 'rgba(120,0,40,0.5)'; c.lineWidth = 1;
+      for (let k = 0; k < 16; k++) { const a = k * TAU / 16; c.beginPath(); c.moveTo(Math.cos(a) * 9, Math.sin(a) * 9); c.lineTo(Math.cos(a) * 18, Math.sin(a) * 18); c.stroke(); }
+      c.fillStyle = 'rgba(30,0,12,0.95)'; c.beginPath(); c.ellipse(0, 0, 4, 13, 0, 0, TAU); c.fill();
+    });
+    add('lid', 64, 64, () => {
+      c.fillStyle = rgrad(0, -6, 2, 0, 0, 27, [[0, 'rgba(46,28,80,0.99)'], [1, 'rgba(10,8,26,0.99)']]);
+      c.beginPath(); c.arc(0, 0, 26.5, 0, TAU); c.fill();
+      glow('#ff40c8', 4); c.strokeStyle = 'rgba(255,150,230,0.9)'; c.lineWidth = 1.3; c.beginPath(); c.arc(0, 0, 26.5, 0, TAU); c.stroke();
+      glow('#ff3060', 5); c.strokeStyle = 'rgba(255,70,110,0.95)'; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(-20, 0); c.quadraticCurveTo(0, 5, 20, 0); c.stroke();
+      noGlow(); c.strokeStyle = 'rgba(190,150,255,0.3)'; c.lineWidth = 0.9;
+      for (const y of [-14, -7, 9, 16]) { const w = Math.sqrt(26 * 26 - y * y) - 3; c.beginPath(); c.moveTo(-w, y); c.lineTo(w, y); c.stroke(); }
+    });
+    add('aerie', 700, 240, () => {
+      const hull = () => {
+        c.beginPath();
+        const fx = k => -330 + k / 8 * 262, fy = k => 10 - 82 * Math.pow(k / 8, 0.8);
+        c.moveTo(-330, 10);
+        for (let k = 1; k <= 8; k++) c.quadraticCurveTo((fx(k - 1) + fx(k)) / 2 - 8, (fy(k - 1) + fy(k)) / 2 - 17, fx(k), fy(k)); // left wing feathers
+        c.lineTo(-50, -110); c.lineTo(-24, -96); c.lineTo(0, -114); c.lineTo(24, -96); c.lineTo(50, -110);                          // tail
+        c.lineTo(-fx(8), fy(8));
+        for (let k = 7; k >= 0; k--) c.quadraticCurveTo(-(fx(k + 1) + fx(k)) / 2 + 8, (fy(k + 1) + fy(k)) / 2 - 17, -fx(k), fy(k));
+        c.lineTo(300, 34); c.lineTo(140, 48); c.lineTo(30, 52); c.lineTo(27, 38);
+        c.arc(0, CORE_Y, 31, 0.55, Math.PI - 0.55, true);
+        c.lineTo(-30, 52); c.lineTo(-140, 48); c.lineTo(-300, 34);
+        c.closePath();
+      };
+      hull(); glow('#c040ff', 12);
+      c.fillStyle = grad(0, -100, 0, 55, [[0, 'rgba(58,30,104,0.98)'], [0.5, 'rgba(22,12,52,0.98)'], [1, 'rgba(6,5,20,0.98)']]);
+      c.fill();
+      c.strokeStyle = grad(-330, 0, 330, 0, [[0, '#ff7fe0'], [0.5, '#e8d8ff'], [1, '#ff7fe0']]); c.lineWidth = 1.8; c.stroke();
+      noGlow();
+      c.save(); hull(); c.clip();
+      // feather-like ribs across the wings
+      c.strokeStyle = 'rgba(200,150,255,0.26)'; c.lineWidth = 1;
+      for (const s of [-1, 1]) for (let k = 0; k < 11; k++) {
+        const x = s * (70 + k * 24);
+        c.beginPath(); c.moveTo(x, -100); c.quadraticCurveTo(x + s * 14, -20, x + s * 34, 60); c.stroke();
+      }
+      c.strokeStyle = 'rgba(255,130,230,0.4)'; c.lineWidth = 1.2;
+      for (const d of [20, 36]) { c.beginPath(); c.moveTo(-330, 10 + d); c.bezierCurveTo(-250, -30 + d, -170, -58 + d, -68, -72 + d); c.lineTo(68, -72 + d); c.bezierCurveTo(170, -58 + d, 250, -30 + d, 330, 10 + d); c.stroke(); }
+      c.restore();
+      // lit windows along the wings
+      glow('#40ffff', 4); c.fillStyle = 'rgba(170,255,255,0.95)';
+      for (const s of [-1, 1]) for (let k = 0; k < 9; k++) {
+        const x = s * (62 + k * 26), y = -22 + Math.pow(Math.abs(x) / 330, 2) * 46;
+        c.beginPath(); c.roundRect(x - 4, y - 1.6, 8, 3.2, 1.4); c.fill();
+      }
+      // canopy
+      glow('#60e0ff', 6); c.strokeStyle = 'rgba(190,245,255,0.9)'; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(0, -100); c.lineTo(0, -16); c.stroke();
+      for (const y of [-84, -66, -48]) { c.beginPath(); c.moveTo(-16, y - 7); c.lineTo(0, y); c.lineTo(16, y - 7); c.stroke(); }
+      for (const s of [-1, 1]) {
+        // engine vents
+        glow('#ff40c8', 8); c.fillStyle = 'rgba(255,170,240,0.95)';
+        c.beginPath(); c.roundRect(s * 37 - 9, -106, 18, 5, 2.5); c.fill();
+        // launch bay
+        glow('#30ffa0', 8); c.fillStyle = 'rgba(180,255,220,0.95)';
+        c.beginPath(); c.roundRect(s * 285 - 17, 20, 34, 7, 3); c.fill();
+        // turret
+        glow('#ffb030', 8); c.fillStyle = 'rgba(20,10,30,0.95)'; c.strokeStyle = '#ffd890'; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(s * 215, 40, 8.5, 0, TAU); c.fill(); c.stroke();
+        c.fillStyle = '#fff2c0'; c.beginPath(); c.arc(s * 215, 42, 3.2, 0, TAU); c.fill();
+      }
+      // socket rim around the eye
+      glow('#ff40c8', 6); c.strokeStyle = 'rgba(255,170,240,0.9)'; c.lineWidth = 1.6;
+      c.beginPath(); c.arc(0, CORE_Y, 31, 0.55, Math.PI - 0.55, true); c.stroke();
+    });
 
     // power-ups: white hex frame + icon, tinted at draw time
     const hex = () => {
