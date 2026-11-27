@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#05061a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2305061a'/%3E%3Cpath d='M12 3 L14 13 L21 18 L20 20 L14 18.5 L12 20 L10 18.5 L4 20 L3 18 L10 13 Z' fill='%237ff6ff'/%3E%3C/svg%3E">
+<title>Galaxian</title>
+<style>
+  :root{--ink:#05061a;--paper:#eaf6ff;--cyan:#7ff6ff;--rose:#ff7fdc}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:32px 16px;color:var(--paper);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:radial-gradient(ellipse at 50% 0%,#2a1650 0%,#0f0f2c 45%,var(--ink) 100%)}
+  main{width:100%;max-width:1080px}
+  h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(56px,12vw,120px);line-height:.9;margin:0 0 20px;letter-spacing:-.02em}
+  p.lede{font-size:18px;line-height:1.55;margin:0 0 34px;opacity:.9;max-width:780px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  a.card{display:block;max-width:520px;padding:14px 14px 24px;border-radius:18px;text-decoration:none;color:inherit;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);transition:transform .15s,background .15s,border-color .15s}
+  a.card:hover,a.card:focus-visible{transform:translateY(-3px);background:rgba(255,255,255,.09);border-color:var(--cyan);outline:none}
+  .card img{display:block;width:100%;height:auto;aspect-ratio:8/5;object-fit:cover;border-radius:9px;margin-bottom:18px;
+    border:1px solid rgba(255,255,255,.1);background:#03040c}
+  .card h2{font-family:Georgia,serif;font-style:italic;font-weight:400;font-size:30px;margin:0 8px 6px}
+  .card p{font-size:14px;line-height:1.5;margin:0 8px;opacity:.75}
+  .tag{display:inline-block;margin:16px 8px 0;padding:5px 12px;border-radius:99px;font-size:13px;font-weight:600;background:var(--cyan);color:var(--ink)}
+  .ver{margin-left:4px;font-size:13px;opacity:.6}
+  footer{margin-top:34px;font-size:13px;line-height:1.6;opacity:.6}
+  footer a{color:var(--cyan)}
+  @media (prefers-reduced-motion:reduce){a.card{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Galaxian</h1>
+  <p class="lede">An arcade game inspired by the 1979 original. A swarm holds formation at the top of the screen, and one attacker after another breaks away to dive at your ship. The version below was built by Claude; versions by other AI assistants, from the same brief, will join it here.</p>
+  <div class="grid">
+    <a class="card" href="Claude/index.html">
+      <img src="Claude/screenshot.jpg" width="1280" height="800" alt="Nightflock in play: green ravens, gold falcons, magenta gulls and cyan swallows in formation over a violet nebula, one swallow peeling off, three shots rising from the ship">
+      <h2>Nightflock</h2><p>Built with Claude. A flock of neon-edged birds holds formation in the night sky, and swallows, gulls, falcons and ravens dive at your ship, each in its own way. Shoot a bird in mid-dive for double points, chain kills to multiply the score, and catch twin shots, rapid fire or a shield. Drawn with WebGL 2, with music and sound made in the browser.</p><span class="tag">Play Nightflock</span><span class="ver">Version 1.0.0</span>
+    </a>
+  </div>
+  <footer>Personal fan project, not affiliated with the makers of the original game. <a href="https://github.com/iago-swi/galaxian">Source and documentation</a> and <a href="https://github.com/iago-swi/galaxian/releases">release notes</a> on GitHub. Read about the <a href="https://en.wikipedia.org/wiki/Galaxian">1979 arcade game</a>.</footer>
+</main>
+</body>
+</html>
