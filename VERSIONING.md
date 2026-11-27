@@ -10,7 +10,7 @@ touches the numbering of another.
 
 A game added later gets its own row, its own folder and its own tag prefix. All
 releases are listed on the
-[Releases page](https://github.com/iago-swi/galaxian/releases).
+[Releases page](https://github.com/iago-swi/phoenix/releases).
 
 ## Version numbers
 
