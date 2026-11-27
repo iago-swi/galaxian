@@ -1,0 +1,119 @@
+# Versions and release notes
+
+This repository holds one game so far, and more will follow. Each game has its own
+version number, its own changelog and its own releases, so work on one game never
+touches the numbering of another.
+
+| Game | Folder | Tag | Changelog |
+| --- | --- | --- | --- |
+| Nightflock | `Claude/` | `nightflock-v1.0.0` | [Claude/CHANGELOG.md](Claude/CHANGELOG.md) |
+
+A game added later gets its own row, its own folder and its own tag prefix. All
+releases are listed on the
+[Releases page](https://github.com/iago-swi/galaxian/releases).
+
+## Version numbers
+
+A version has three numbers, `MAJOR.MINOR.PATCH`.
+
+| Number | Raise it when | Example |
+| --- | --- | --- |
+| MAJOR | The game is reworked so that it plays differently, or saved scores no longer carry over. | 1.4.2 → 2.0.0 |
+| MINOR | Players get something new: a feature, a screen, a control, a setting. | 1.3.0 → 1.4.0 |
+| PATCH | Something is fixed or adjusted and nothing new is added. | 1.3.0 → 1.3.1 |
+
+Raising a number sets the numbers after it back to zero.
+
+## What gets a version
+
+- Every change to a game that a player can notice gets a new version of that game.
+- Changes to documentation only (a README, a screenshot, this file) get no version,
+  no tag and no release. They still go through a branch and a pull request.
+- Changes outside the game folders (the landing page, the main README) get no version.
+- Several changes pushed together are one version, numbered by the largest of them.
+
+## Steps for a new version
+
+Every change reaches `main` through a branch and a pull request. Nothing is committed
+or pushed directly on `main`.
+
+1. Bring `main` up to date:
+
+   ```sh
+   git switch main
+   git pull
+   ```
+
+2. Create a branch from it. The name says what the change is:
+
+   | Change | Branch | Example |
+   | --- | --- | --- |
+   | A new version of a game | `release/<game>-vX.Y.Z` | `release/nightflock-v1.1.0` |
+   | Documentation only | `docs/<short-name>` | `docs/new-screenshot` |
+
+   ```sh
+   git switch -c release/nightflock-v1.1.0
+   ```
+
+3. Decide the new number from the table above.
+4. Update the version shown in the game, if the game shows one.
+5. Add a section at the top of the game's `CHANGELOG.md`: the number, the date
+   (`YYYY-MM-DD`), and the changes under "Added", "Changed", "Fixed" or "Removed".
+6. Rebuild the game's standalone file, if it has one.
+7. Commit on the branch, under the repository owner's Git identity, with a plain
+   message. No attribution lines: no "Co-Authored-By", no "Generated with".
+8. Push the branch and open a pull request. The title is the version number and a few
+   words. The body is the changelog section for this version, in plain language for
+   players:
+
+   ```sh
+   git push -u origin release/nightflock-v1.1.0
+   gh pr create --base main --title "Nightflock 1.1.0: a few words" --body-file notes.md
+   ```
+
+   When only a pull request is asked for, stop here and give its link.
+
+9. Merge it with a merge commit, not a squash and not a rebase:
+
+   ```sh
+   gh pr merge --merge --delete-branch
+   ```
+
+10. Update `main`, tag the merge commit and push the tag:
+
+    ```sh
+    git switch main
+    git pull
+    git tag -a nightflock-v1.1.0 -m "Nightflock 1.1.0"
+    git push origin nightflock-v1.1.0
+    ```
+
+11. Publish the release, with the changelog section as its notes and the standalone
+    file attached:
+
+    ```sh
+    gh release create nightflock-v1.1.0 --verify-tag --title "Nightflock 1.1.0" --notes-file notes.md Claude/Nightflock.html
+    ```
+
+A change to the documentation alone follows steps 1, 2, 7, 8 and 9 and ends there. Its
+pull request has a short title and a short description, and it gets no version, no tag
+and no release.
+
+## Writing the notes
+
+- Write for players, in plain language: what they can now do, or what no longer goes
+  wrong. Leave out file names and internal details unless a developer needs them.
+- One line per change. Start with the thing that changed.
+- Say plainly when something was removed or behaves differently than before.
+
+## Rules
+
+- Every change goes through a branch and a pull request. Nothing is committed or pushed
+  directly on `main`. The one exception is the commit that created the repository.
+- `main` is never force-pushed, and existing history is not rewritten.
+- A tag that has been pushed is never moved or deleted. A mistake is corrected with a
+  new version.
+- Work only in your own game's folder, changelog and tags. Do not write release notes
+  for another game.
+- The "Latest" label on the Releases page goes to the newest release of any game. That
+  is expected with several games in one repository.
