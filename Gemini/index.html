@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f2e4c8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f2e4c8'/%3E%3Ccircle cx='16' cy='15' r='9' fill='%23d4381e'/%3E%3Cpath d='M16 7 L19.5 16 L26 21 L18.5 19.5 L16 24 L13.5 19.5 L6 21 L12.5 16 Z' fill='%231b1615'/%3E%3C/svg%3E">
+<title>Suncrest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b1615;
+    --ink-soft: rgba(27, 22, 21, 0.72);
+    --paper: #f4e8cf;
+    --paper-card: rgba(248, 238, 215, 0.92);
+    --vermilion: #cf341c;
+    --vermilion-dark: #a52410;
+    --gold: #c88a1e;
+    --gold-bright: #e9b949;
+    --prussian: #1b4070;
+    --jade: #1e735c;
+    --font-display: "Cinzel", Georgia, "Times New Roman", serif;
+    --font-serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-serif);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  #stage-wrap {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  canvas#game {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Top HUD */
+  #hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: max(12px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  #hud.visible {
+    opacity: 1;
+  }
+
+  .hud-top {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 12px;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .hud-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hud-block.center {
+    align-items: center;
+    text-align: center;
+  }
+
+  .hud-block.right {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .hud-label {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-shadow: 0 1px 0 rgba(255, 248, 232, 0.7);
+  }
+
+  .hud-value {
+    font-family: var(--font-mono);
+    font-size: clamp(20px, 2.8vw, 28px);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    text-shadow: 0 1px 0 rgba(255, 248, 232, 0.85);
+  }
+
+  .hud-value.best {
+    color: var(--vermilion-dark);
+  }
+
+  .hud-sub {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--prussian);
+    text-shadow: 0 1px 0 rgba(255, 248, 232, 0.8);
+  }
+
+  .hud-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #combo-seal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1.5px solid var(--vermilion);
+    background: rgba(207, 52, 28, 0.12);
+    color: var(--vermilion-dark);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+  }
+
+  #combo-seal.active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .hud-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+    pointer-events: auto;
+  }
+
+  .icon-btn {
+    appearance: none;
+    border: 1.5px solid rgba(27, 22, 21, 0.45);
+    background: rgba(248, 238, 215, 0.78);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 4px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+
+  .icon-btn:hover, .icon-btn:focus-visible {
+    background: #fff7e4;
+    border-color: var(--vermilion);
+    outline: none;
+  }
+
+  .icon-btn:active {
+    transform: translateY(1px);
+  }
+
+  /* Boss Bar */
+  #boss-bar-wrap {
+    width: min(460px, 78vw);
+    margin: 6px auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  #boss-bar-wrap.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .boss-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    padding: 1px 10px;
+    border-radius: 3px;
+    background: rgba(248, 238, 215, 0.86);
+    border: 1px solid rgba(27, 22, 21, 0.3);
+  }
+
+  .boss-track {
+    width: 100%;
+    height: 9px;
+    background: rgba(27, 22, 21, 0.18);
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255, 248, 232, 0.65);
+  }
+
+  #boss-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--vermilion) 0%, var(--gold-bright) 100%);
+    transition: width 0.14s ease-out;
+  }
+
+  /* Bottom HUD */
+  .hud-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    gap: 16px;
+  }
+
+  #lives-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    background: rgba(248, 238, 215, 0.72);
+    border: 1.5px solid rgba(27, 22, 21, 0.35);
+    border-radius: 5px;
+  }
+
+  .life-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+
+  #powerup-badge {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1.5px solid var(--gold);
+    background: rgba(248, 238, 215, 0.88);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--vermilion-dark);
+  }
+
+  #powerup-badge.visible {
+    display: inline-flex;
+  }
+
+  #ward-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 6px 11px;
+    background: rgba(248, 238, 215, 0.76);
+    border: 1.5px solid rgba(27, 22, 21, 0.38);
+    border-radius: 5px;
+    min-width: 166px;
+  }
+
+  .ward-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .ward-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--ink);
+  }
+
+  #ward-state {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--jade);
+  }
+
+  #ward-state.active {
+    color: var(--vermilion);
+  }
+
+  #ward-state.recharging {
+    color: var(--prussian);
+  }
+
+  .ward-track {
+    width: 100%;
+    height: 7px;
+    background: rgba(27, 22, 21, 0.16);
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  #ward-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--gold-bright) 100%);
+    transition: width 0.06s linear;
+  }
+
+  #ward-fill.active {
+    background: linear-gradient(90deg, var(--vermilion) 0%, #f5b942 100%);
+  }
+
+  #ward-fill.recharging {
+    background: linear-gradient(90deg, var(--prussian) 0%, #4d7db5 100%);
+  }
+
+  /* Stage Banner */
+  #banner {
+    position: fixed;
+    left: 50%;
+    top: 40%;
+    transform: translate(-50%, -50%) scale(0.94);
+    text-align: center;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    transition: opacity 0.28s ease, transform 0.28s ease;
+    padding: 16px 34px;
+    background: rgba(248, 238, 215, 0.9);
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    box-shadow: 0 12px 32px rgba(27, 22, 21, 0.18);
+  }
+
+  #banner.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  #banner-kicker {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    color: var(--vermilion);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  #banner-title {
+    font-family: var(--font-display);
+    font-size: clamp(24px, 4.2vw, 38px);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  #banner-sub {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+
+  /* Overlays (Title / Pause / Game Over) */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 25;
+    background: rgba(242, 228, 200, 0.28);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .scroll-card {
+    position: relative;
+    width: min(500px, 94vw);
+    padding: 32px 34px 28px;
+    background: var(--paper-card);
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    box-shadow:
+      0 0 0 5px rgba(248, 238, 215, 0.85),
+      0 0 0 6.5px rgba(27, 22, 21, 0.45),
+      0 20px 54px rgba(27, 22, 21, 0.28);
+    text-align: center;
+  }
+
+  .title-crest {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .seal-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border: 1.5px solid var(--vermilion);
+    border-radius: 3px;
+    background: var(--vermilion);
+    color: #fff8eb;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .card-kicker {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    color: var(--prussian);
+    text-transform: uppercase;
+  }
+
+  .game-title {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 7.5vw, 60px);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    line-height: 1.02;
+    margin: 4px 0 8px;
+    color: var(--ink);
+    text-shadow: 0 2px 0 rgba(200, 138, 30, 0.28);
+  }
+
+  .subtitle {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1.38;
+    color: var(--ink-soft);
+    margin: 0 0 20px;
+  }
+
+  .rule-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(27, 22, 21, 0.45), transparent);
+    margin: 16px 0;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    text-align: left;
+    margin: 0 auto 22px;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  .ctrl-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px dotted rgba(27, 22, 21, 0.22);
+    padding-bottom: 3px;
+  }
+
+  .ctrl-key {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vermilion-dark);
+    white-space: nowrap;
+  }
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn {
+    appearance: none;
+    border: 2px solid var(--ink);
+    border-radius: 3px;
+    padding: 11px 26px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--vermilion);
+    color: #fff8eb;
+    box-shadow: 0 3px 0 var(--ink);
+  }
+
+  .btn-primary:hover, .btn-primary:focus-visible {
+    background: var(--vermilion-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 0 var(--ink);
+    outline: none;
+  }
+
+  .btn-primary:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--ink);
+  }
+
+  .btn-secondary {
+    background: #fff7e6;
+    color: var(--ink);
+    box-shadow: 0 3px 0 rgba(27, 22, 21, 0.5);
+  }
+
+  .btn-secondary:hover, .btn-secondary:focus-visible {
+    background: #f3e2be;
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .title-meta {
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 18px 0 22px;
+  }
+
+  .stat-box {
+    padding: 10px 8px;
+    background: rgba(27, 22, 21, 0.05);
+    border: 1px solid rgba(27, 22, 21, 0.25);
+    border-radius: 3px;
+  }
+
+  .stat-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-top: 3px;
+  }
+
+  #new-best-tag {
+    display: none;
+    margin-bottom: 8px;
+  }
+
+  #new-best-tag.visible {
+    display: inline-block;
+  }
+
+  /* Touch controls (visible on touch devices during play) */
+  #touch-controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    padding: 0 max(14px, env(safe-area-inset-left));
+    display: none;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  body.touch-active #touch-controls.visible {
+    display: flex;
+  }
+
+  body.touch-active #hud {
+    padding-bottom: 86px;
+  }
+
+  .touch-group {
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+  }
+
+  .touch-btn {
+    appearance: none;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--ink);
+    background: rgba(248, 238, 215, 0.84);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 rgba(27, 22, 21, 0.45);
+    touch-action: none;
+  }
+
+  .touch-btn.fire {
+    width: 68px;
+    height: 68px;
+    background: rgba(207, 52, 28, 0.88);
+    color: #fff8eb;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+  }
+
+  .touch-btn.ward {
+    width: 64px;
+    height: 64px;
+    background: rgba(200, 138, 30, 0.88);
+    color: var(--ink);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .touch-btn.pressed {
+    transform: translateY(2px) scale(0.95);
+    box-shadow: 0 1px 0 rgba(27, 22, 21, 0.45);
+  }
+
+  @media (max-width: 640px) {
+    .scroll-card {
+      padding: 24px 20px 20px;
+    }
+    .controls-grid {
+      grid-template-columns: 1fr;
+    }
+    .hud-top {
+      gap: 6px;
+    }
+    #ward-wrap {
+      min-width: 136px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #hud, #banner, .overlay, .btn, #boss-bar-wrap {
+      transition: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <canvas id="game" aria-label="Suncrest arcade game"></canvas>
+</div>
+
+<div id="hud">
+  <div>
+    <div class="hud-top">
+      <div class="hud-block">
+        <span class="hud-label">Score</span>
+        <div class="hud-row">
+          <span class="hud-value" id="hud-score">000000</span>
+          <span id="combo-seal">×2</span>
+        </div>
+      </div>
+      <div class="hud-block center">
+        <span class="hud-label">Best</span>
+        <span class="hud-value best" id="hud-best">000000</span>
+      </div>
+      <div class="hud-block right">
+        <span class="hud-label" id="hud-cycle">Cycle 1 · Stage 1</span>
+        <span class="hud-sub" id="hud-stage-name">Dawn Flock</span>
+        <div class="hud-actions">
+          <button class="icon-btn" id="btn-mute" type="button" title="Toggle sound (M)">Sound</button>
+          <button class="icon-btn" id="btn-pause" type="button" title="Pause (P)">Pause</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="boss-bar-wrap">
+      <span class="boss-title" id="boss-label">The Sun-Ark</span>
+      <div class="boss-track"><div id="boss-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="hud-bottom">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div id="lives-wrap" aria-label="Remaining ships"></div>
+      <div id="powerup-badge">TWIN LANCE <span id="powerup-timer">10s</span></div>
+    </div>
+    <div id="ward-wrap">
+      <div class="ward-head">
+        <span class="ward-title">Solar Ward</span>
+        <span id="ward-state">READY</span>
+      </div>
+      <div class="ward-track"><div id="ward-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="banner" aria-live="polite">
+  <div id="banner-kicker">Cycle 1 · Stage 1</div>
+  <h2 id="banner-title">Dawn Flock</h2>
+  <div id="banner-sub">Defend the scroll from the diving birds</div>
+</div>
+
+<div class="overlay visible" id="title-overlay">
+  <div class="scroll-card">
+    <div class="title-crest">
+      <span class="card-kicker">Woodblock Arcade Shooter</span>
+      <span class="seal-badge" id="version-badge">Version 1.0.0</span>
+    </div>
+    <h1 class="game-title">SUNCREST</h1>
+    <p class="subtitle">Flocks descend across the gilded scroll, porcelain eggs hatch into regrowing firebirds, and the Sun-Ark lowers its revolving shields.</p>
+    <div class="rule-divider"></div>
+    <div class="controls-grid">
+      <div class="ctrl-item"><span>Move</span><span class="ctrl-key">← → / A D</span></div>
+      <div class="ctrl-item"><span>Fire</span><span class="ctrl-key">Space / ↑ / W</span></div>
+      <div class="ctrl-item"><span>Solar Ward</span><span class="ctrl-key">↓ / S / Shift</span></div>
+      <div class="ctrl-item"><span>Pause / Mute</span><span class="ctrl-key">P / M</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-start" type="button">Begin Flight</button>
+      <button class="btn btn-secondary" id="btn-title-mute" type="button">Sound: On</button>
+    </div>
+    <div class="title-meta">
+      <span>Best Score: <strong id="title-best">000000</strong></span>
+      <span>Touch controls ready on mobile</span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pause-overlay">
+  <div class="scroll-card">
+    <div class="card-kicker">Scroll Paused</div>
+    <h2 class="game-title" style="font-size:38px;margin-top:6px;">PAUSED</h2>
+    <p class="subtitle" style="margin-bottom:22px;">Catch your breath before the flock closes in.</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-resume" type="button">Resume</button>
+      <button class="btn btn-secondary" id="btn-pause-restart" type="button">Restart</button>
+      <button class="btn btn-secondary" id="btn-pause-title" type="button">Title</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="gameover-overlay">
+  <div class="scroll-card">
+    <span class="seal-badge" id="new-best-tag">New Best Record</span>
+    <div class="card-kicker">Flight Ended</div>
+    <h2 class="game-title" style="font-size:38px;margin-top:6px;">THE SCROLL CLOSES</h2>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">Score</div>
+        <div class="stat-val" id="go-score">000000</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Best</div>
+        <div class="stat-val" id="go-best">000000</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Reached</div>
+        <div class="stat-val" id="go-stage">C1 · S1</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-restart" type="button">Fly Again</button>
+      <button class="btn btn-secondary" id="btn-go-title" type="button">Title</button>
+    </div>
+  </div>
+</div>
+
+<div id="touch-controls" aria-label="Touch controls">
+  <div class="touch-group">
+    <button class="touch-btn" id="touch-left" type="button" aria-label="Move left">◀</button>
+    <button class="touch-btn" id="touch-right" type="button" aria-label="Move right">▶</button>
+  </div>
+  <div class="touch-group">
+    <button class="touch-btn ward" id="touch-ward" type="button" aria-label="Solar Ward shield">WARD</button>
+    <button class="touch-btn fire" id="touch-fire" type="button" aria-label="Fire">FIRE</button>
+  </div>
+</div>
+
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

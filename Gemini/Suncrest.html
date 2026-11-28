@@ -1,0 +1,4774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f2e4c8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f2e4c8'/%3E%3Ccircle cx='16' cy='15' r='9' fill='%23d4381e'/%3E%3Cpath d='M16 7 L19.5 16 L26 21 L18.5 19.5 L16 24 L13.5 19.5 L6 21 L12.5 16 Z' fill='%231b1615'/%3E%3C/svg%3E">
+<title>Suncrest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b1615;
+    --ink-soft: rgba(27, 22, 21, 0.72);
+    --paper: #f4e8cf;
+    --paper-card: rgba(248, 238, 215, 0.92);
+    --vermilion: #cf341c;
+    --vermilion-dark: #a52410;
+    --gold: #c88a1e;
+    --gold-bright: #e9b949;
+    --prussian: #1b4070;
+    --jade: #1e735c;
+    --font-display: "Cinzel", Georgia, "Times New Roman", serif;
+    --font-serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-serif);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  #stage-wrap {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  canvas#game {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Top HUD */
+  #hud {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: max(12px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  #hud.visible {
+    opacity: 1;
+  }
+
+  .hud-top {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 12px;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .hud-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .hud-block.center {
+    align-items: center;
+    text-align: center;
+  }
+
+  .hud-block.right {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .hud-label {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-shadow: 0 1px 0 rgba(255, 248, 232, 0.7);
+  }
+
+  .hud-value {
+    font-family: var(--font-mono);
+    font-size: clamp(20px, 2.8vw, 28px);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    text-shadow: 0 1px 0 rgba(255, 248, 232, 0.85);
+  }
+
+  .hud-value.best {
+    color: var(--vermilion-dark);
+  }
+
+  .hud-sub {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--prussian);
+    text-shadow: 0 1px 0 rgba(255, 248, 232, 0.8);
+  }
+
+  .hud-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #combo-seal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1.5px solid var(--vermilion);
+    background: rgba(207, 52, 28, 0.12);
+    color: var(--vermilion-dark);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+  }
+
+  #combo-seal.active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .hud-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+    pointer-events: auto;
+  }
+
+  .icon-btn {
+    appearance: none;
+    border: 1.5px solid rgba(27, 22, 21, 0.45);
+    background: rgba(248, 238, 215, 0.78);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 4px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+
+  .icon-btn:hover, .icon-btn:focus-visible {
+    background: #fff7e4;
+    border-color: var(--vermilion);
+    outline: none;
+  }
+
+  .icon-btn:active {
+    transform: translateY(1px);
+  }
+
+  /* Boss Bar */
+  #boss-bar-wrap {
+    width: min(460px, 78vw);
+    margin: 6px auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  #boss-bar-wrap.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .boss-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink);
+    padding: 1px 10px;
+    border-radius: 3px;
+    background: rgba(248, 238, 215, 0.86);
+    border: 1px solid rgba(27, 22, 21, 0.3);
+  }
+
+  .boss-track {
+    width: 100%;
+    height: 9px;
+    background: rgba(27, 22, 21, 0.18);
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255, 248, 232, 0.65);
+  }
+
+  #boss-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--vermilion) 0%, var(--gold-bright) 100%);
+    transition: width 0.14s ease-out;
+  }
+
+  /* Bottom HUD */
+  .hud-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    gap: 16px;
+  }
+
+  #lives-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    background: rgba(248, 238, 215, 0.72);
+    border: 1.5px solid rgba(27, 22, 21, 0.35);
+    border-radius: 5px;
+  }
+
+  .life-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+
+  #powerup-badge {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1.5px solid var(--gold);
+    background: rgba(248, 238, 215, 0.88);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--vermilion-dark);
+  }
+
+  #powerup-badge.visible {
+    display: inline-flex;
+  }
+
+  #ward-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    padding: 6px 11px;
+    background: rgba(248, 238, 215, 0.76);
+    border: 1.5px solid rgba(27, 22, 21, 0.38);
+    border-radius: 5px;
+    min-width: 166px;
+  }
+
+  .ward-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .ward-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--ink);
+  }
+
+  #ward-state {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--jade);
+  }
+
+  #ward-state.active {
+    color: var(--vermilion);
+  }
+
+  #ward-state.recharging {
+    color: var(--prussian);
+  }
+
+  .ward-track {
+    width: 100%;
+    height: 7px;
+    background: rgba(27, 22, 21, 0.16);
+    border: 1.5px solid var(--ink);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  #ward-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--gold-bright) 100%);
+    transition: width 0.06s linear;
+  }
+
+  #ward-fill.active {
+    background: linear-gradient(90deg, var(--vermilion) 0%, #f5b942 100%);
+  }
+
+  #ward-fill.recharging {
+    background: linear-gradient(90deg, var(--prussian) 0%, #4d7db5 100%);
+  }
+
+  /* Stage Banner */
+  #banner {
+    position: fixed;
+    left: 50%;
+    top: 40%;
+    transform: translate(-50%, -50%) scale(0.94);
+    text-align: center;
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    transition: opacity 0.28s ease, transform 0.28s ease;
+    padding: 16px 34px;
+    background: rgba(248, 238, 215, 0.9);
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    box-shadow: 0 12px 32px rgba(27, 22, 21, 0.18);
+  }
+
+  #banner.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  #banner-kicker {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.26em;
+    color: var(--vermilion);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  #banner-title {
+    font-family: var(--font-display);
+    font-size: clamp(24px, 4.2vw, 38px);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  #banner-sub {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+
+  /* Overlays (Title / Pause / Game Over) */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 25;
+    background: rgba(242, 228, 200, 0.28);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .scroll-card {
+    position: relative;
+    width: min(500px, 94vw);
+    padding: 32px 34px 28px;
+    background: var(--paper-card);
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    box-shadow:
+      0 0 0 5px rgba(248, 238, 215, 0.85),
+      0 0 0 6.5px rgba(27, 22, 21, 0.45),
+      0 20px 54px rgba(27, 22, 21, 0.28);
+    text-align: center;
+  }
+
+  .title-crest {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .seal-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border: 1.5px solid var(--vermilion);
+    border-radius: 3px;
+    background: var(--vermilion);
+    color: #fff8eb;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .card-kicker {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    color: var(--prussian);
+    text-transform: uppercase;
+  }
+
+  .game-title {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 7.5vw, 60px);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    line-height: 1.02;
+    margin: 4px 0 8px;
+    color: var(--ink);
+    text-shadow: 0 2px 0 rgba(200, 138, 30, 0.28);
+  }
+
+  .subtitle {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1.38;
+    color: var(--ink-soft);
+    margin: 0 0 20px;
+  }
+
+  .rule-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(27, 22, 21, 0.45), transparent);
+    margin: 16px 0;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 16px;
+    text-align: left;
+    margin: 0 auto 22px;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  .ctrl-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px dotted rgba(27, 22, 21, 0.22);
+    padding-bottom: 3px;
+  }
+
+  .ctrl-key {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--vermilion-dark);
+    white-space: nowrap;
+  }
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .btn {
+    appearance: none;
+    border: 2px solid var(--ink);
+    border-radius: 3px;
+    padding: 11px 26px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--vermilion);
+    color: #fff8eb;
+    box-shadow: 0 3px 0 var(--ink);
+  }
+
+  .btn-primary:hover, .btn-primary:focus-visible {
+    background: var(--vermilion-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 0 var(--ink);
+    outline: none;
+  }
+
+  .btn-primary:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--ink);
+  }
+
+  .btn-secondary {
+    background: #fff7e6;
+    color: var(--ink);
+    box-shadow: 0 3px 0 rgba(27, 22, 21, 0.5);
+  }
+
+  .btn-secondary:hover, .btn-secondary:focus-visible {
+    background: #f3e2be;
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .title-meta {
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 18px 0 22px;
+  }
+
+  .stat-box {
+    padding: 10px 8px;
+    background: rgba(27, 22, 21, 0.05);
+    border: 1px solid rgba(27, 22, 21, 0.25);
+    border-radius: 3px;
+  }
+
+  .stat-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-top: 3px;
+  }
+
+  #new-best-tag {
+    display: none;
+    margin-bottom: 8px;
+  }
+
+  #new-best-tag.visible {
+    display: inline-block;
+  }
+
+  /* Touch controls (visible on touch devices during play) */
+  #touch-controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    padding: 0 max(14px, env(safe-area-inset-left));
+    display: none;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  body.touch-active #touch-controls.visible {
+    display: flex;
+  }
+
+  body.touch-active #hud {
+    padding-bottom: 86px;
+  }
+
+  .touch-group {
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+  }
+
+  .touch-btn {
+    appearance: none;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--ink);
+    background: rgba(248, 238, 215, 0.84);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 0 rgba(27, 22, 21, 0.45);
+    touch-action: none;
+  }
+
+  .touch-btn.fire {
+    width: 68px;
+    height: 68px;
+    background: rgba(207, 52, 28, 0.88);
+    color: #fff8eb;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+  }
+
+  .touch-btn.ward {
+    width: 64px;
+    height: 64px;
+    background: rgba(200, 138, 30, 0.88);
+    color: var(--ink);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .touch-btn.pressed {
+    transform: translateY(2px) scale(0.95);
+    box-shadow: 0 1px 0 rgba(27, 22, 21, 0.45);
+  }
+
+  @media (max-width: 640px) {
+    .scroll-card {
+      padding: 24px 20px 20px;
+    }
+    .controls-grid {
+      grid-template-columns: 1fr;
+    }
+    .hud-top {
+      gap: 6px;
+    }
+    #ward-wrap {
+      min-width: 136px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #hud, #banner, .overlay, .btn, #boss-bar-wrap {
+      transition: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <canvas id="game" aria-label="Suncrest arcade game"></canvas>
+</div>
+
+<div id="hud">
+  <div>
+    <div class="hud-top">
+      <div class="hud-block">
+        <span class="hud-label">Score</span>
+        <div class="hud-row">
+          <span class="hud-value" id="hud-score">000000</span>
+          <span id="combo-seal">×2</span>
+        </div>
+      </div>
+      <div class="hud-block center">
+        <span class="hud-label">Best</span>
+        <span class="hud-value best" id="hud-best">000000</span>
+      </div>
+      <div class="hud-block right">
+        <span class="hud-label" id="hud-cycle">Cycle 1 · Stage 1</span>
+        <span class="hud-sub" id="hud-stage-name">Dawn Flock</span>
+        <div class="hud-actions">
+          <button class="icon-btn" id="btn-mute" type="button" title="Toggle sound (M)">Sound</button>
+          <button class="icon-btn" id="btn-pause" type="button" title="Pause (P)">Pause</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="boss-bar-wrap">
+      <span class="boss-title" id="boss-label">The Sun-Ark</span>
+      <div class="boss-track"><div id="boss-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="hud-bottom">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div id="lives-wrap" aria-label="Remaining ships"></div>
+      <div id="powerup-badge">TWIN LANCE <span id="powerup-timer">10s</span></div>
+    </div>
+    <div id="ward-wrap">
+      <div class="ward-head">
+        <span class="ward-title">Solar Ward</span>
+        <span id="ward-state">READY</span>
+      </div>
+      <div class="ward-track"><div id="ward-fill"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="banner" aria-live="polite">
+  <div id="banner-kicker">Cycle 1 · Stage 1</div>
+  <h2 id="banner-title">Dawn Flock</h2>
+  <div id="banner-sub">Defend the scroll from the diving birds</div>
+</div>
+
+<div class="overlay visible" id="title-overlay">
+  <div class="scroll-card">
+    <div class="title-crest">
+      <span class="card-kicker">Woodblock Arcade Shooter</span>
+      <span class="seal-badge" id="version-badge">Version 1.0.0</span>
+    </div>
+    <h1 class="game-title">SUNCREST</h1>
+    <p class="subtitle">Flocks descend across the gilded scroll, porcelain eggs hatch into regrowing firebirds, and the Sun-Ark lowers its revolving shields.</p>
+    <div class="rule-divider"></div>
+    <div class="controls-grid">
+      <div class="ctrl-item"><span>Move</span><span class="ctrl-key">← → / A D</span></div>
+      <div class="ctrl-item"><span>Fire</span><span class="ctrl-key">Space / ↑ / W</span></div>
+      <div class="ctrl-item"><span>Solar Ward</span><span class="ctrl-key">↓ / S / Shift</span></div>
+      <div class="ctrl-item"><span>Pause / Mute</span><span class="ctrl-key">P / M</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-start" type="button">Begin Flight</button>
+      <button class="btn btn-secondary" id="btn-title-mute" type="button">Sound: On</button>
+    </div>
+    <div class="title-meta">
+      <span>Best Score: <strong id="title-best">000000</strong></span>
+      <span>Touch controls ready on mobile</span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pause-overlay">
+  <div class="scroll-card">
+    <div class="card-kicker">Scroll Paused</div>
+    <h2 class="game-title" style="font-size:38px;margin-top:6px;">PAUSED</h2>
+    <p class="subtitle" style="margin-bottom:22px;">Catch your breath before the flock closes in.</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-resume" type="button">Resume</button>
+      <button class="btn btn-secondary" id="btn-pause-restart" type="button">Restart</button>
+      <button class="btn btn-secondary" id="btn-pause-title" type="button">Title</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="gameover-overlay">
+  <div class="scroll-card">
+    <span class="seal-badge" id="new-best-tag">New Best Record</span>
+    <div class="card-kicker">Flight Ended</div>
+    <h2 class="game-title" style="font-size:38px;margin-top:6px;">THE SCROLL CLOSES</h2>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">Score</div>
+        <div class="stat-val" id="go-score">000000</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Best</div>
+        <div class="stat-val" id="go-best">000000</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Reached</div>
+        <div class="stat-val" id="go-stage">C1 · S1</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-restart" type="button">Fly Again</button>
+      <button class="btn btn-secondary" id="btn-go-title" type="button">Title</button>
+    </div>
+  </div>
+</div>
+
+<div id="touch-controls" aria-label="Touch controls">
+  <div class="touch-group">
+    <button class="touch-btn" id="touch-left" type="button" aria-label="Move left">◀</button>
+    <button class="touch-btn" id="touch-right" type="button" aria-label="Move right">▶</button>
+  </div>
+  <div class="touch-group">
+    <button class="touch-btn ward" id="touch-ward" type="button" aria-label="Solar Ward shield">WARD</button>
+    <button class="touch-btn fire" id="touch-fire" type="button" aria-label="Fire">FIRE</button>
+  </div>
+</div>
+
+<script>
+/* Suncrest — Procedural Ukiyo-e / Rinpa Woodblock & Gold-Leaf Art Engine */
+(function (global) {
+  'use strict';
+
+  const INK = '#1b1615';
+  const CREAM = '#faf1dc';
+
+  // Five distinct sunlit woodblock palettes, one per stage in each cycle.
+  const STAGE_PALETTES = [
+    {
+      name: 'Dawn Flock',
+      sub: 'Swifts, kingfishers and kites descend across morning paper',
+      skyTop: '#f5ead3',
+      skyMid: '#efe0be',
+      skyLow: '#e5c596',
+      sunCore: '#d83a20',
+      sunRing: '#ef7e44',
+      sunY: 0.34,
+      sunR: 112,
+      cloudFill: 'rgba(249, 241, 220, 0.72)',
+      cloudGold: 'rgba(209, 152, 52, 0.34)',
+      mountainFar: '#96a8b2',
+      mountainNear: '#587185',
+      waveBack: '#264d7c',
+      waveFront: '#1a385e',
+      foam: '#f7eed9'
+    },
+    {
+      name: 'Gale Flock',
+      sub: 'A wider wing rides the gold-leaf wind',
+      skyTop: '#f3e3b4',
+      skyMid: '#ebd08e',
+      skyLow: '#dfaa5e',
+      sunCore: '#cf311a',
+      sunRing: '#f4b44a',
+      sunY: 0.28,
+      sunR: 100,
+      cloudFill: 'rgba(252, 245, 224, 0.68)',
+      cloudGold: 'rgba(202, 134, 24, 0.42)',
+      mountainFar: '#9e8f77',
+      mountainNear: '#625e64',
+      waveBack: '#244b75',
+      waveFront: '#173254',
+      foam: '#fbf3de'
+    },
+    {
+      name: 'Porcelain Brood',
+      sub: 'Crack the kintsugi eggs before the Great Phoenixes hatch',
+      skyTop: '#eef1e1',
+      skyMid: '#dce5d0',
+      skyLow: '#e6c8a8',
+      sunCore: '#d94528',
+      sunRing: '#f29a62',
+      sunY: 0.36,
+      sunR: 118,
+      cloudFill: 'rgba(250, 248, 236, 0.76)',
+      cloudGold: 'rgba(187, 148, 62, 0.32)',
+      mountainFar: '#7d9b94',
+      mountainNear: '#3d6b66',
+      waveBack: '#1f5761',
+      waveFront: '#163f4a',
+      foam: '#f5f2e4'
+    },
+    {
+      name: 'Crimson Brood',
+      sub: 'Twin broods weave across the persimmon scroll',
+      skyTop: '#f5dec2',
+      skyMid: '#ebc092',
+      skyLow: '#de8e5d',
+      sunCore: '#be2614',
+      sunRing: '#ee7b38',
+      sunY: 0.39,
+      sunR: 126,
+      cloudFill: 'rgba(252, 239, 218, 0.66)',
+      cloudGold: 'rgba(196, 114, 34, 0.42)',
+      mountainFar: '#8a6b6e',
+      mountainNear: '#4d4152',
+      waveBack: '#283d66',
+      waveFront: '#182745',
+      foam: '#faebd4'
+    },
+    {
+      name: 'The Sun-Ark',
+      sub: 'Breach the lacquer armour and revolving bronze shields',
+      skyTop: '#efd8a4',
+      skyMid: '#e2b56c',
+      skyLow: '#d47c4a',
+      sunCore: '#b92212',
+      sunRing: '#f3c151',
+      sunY: 0.25,
+      sunR: 146,
+      cloudFill: 'rgba(249, 234, 196, 0.56)',
+      cloudGold: 'rgba(205, 134, 24, 0.48)',
+      mountainFar: '#7b554c',
+      mountainNear: '#412e34',
+      waveBack: '#1f365c',
+      waveFront: '#132440',
+      foam: '#f8ebd0'
+    }
+  ];
+
+  // Cached procedural washi paper texture pattern
+  let paperPattern = null;
+
+  function ensurePaperPattern(ctx) {
+    if (paperPattern) return paperPattern;
+    const tile = document.createElement('canvas');
+    tile.width = 160;
+    tile.height = 160;
+    const tctx = tile.getContext('2d');
+
+    // Deterministic pseudo-random washi fibers & warm specks
+    let seed = 198012;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+
+    tctx.clearRect(0, 0, 160, 160);
+    for (let i = 0; i < 420; i++) {
+      const x = rand() * 160;
+      const y = rand() * 160;
+      const r = 0.5 + rand() * 1.1;
+      tctx.fillStyle = rand() > 0.5
+        ? 'rgba(110, 82, 46, 0.045)'
+        : 'rgba(255, 250, 236, 0.065)';
+      tctx.fillRect(x, y, r, r);
+    }
+
+    // Subtle organic paper fibers
+    tctx.lineWidth = 0.7;
+    for (let i = 0; i < 48; i++) {
+      const x = rand() * 160;
+      const y = rand() * 160;
+      const len = 6 + rand() * 18;
+      const ang = rand() * Math.PI * 2;
+      tctx.strokeStyle = rand() > 0.45
+        ? 'rgba(122, 92, 54, 0.05)'
+        : 'rgba(255, 252, 242, 0.07)';
+      tctx.beginPath();
+      tctx.moveTo(x, y);
+      tctx.quadraticCurveTo(
+        x + Math.cos(ang + 0.3) * len * 0.5,
+        y + Math.sin(ang + 0.3) * len * 0.5,
+        x + Math.cos(ang) * len,
+        y + Math.sin(ang) * len
+      );
+      tctx.stroke();
+    }
+
+    paperPattern = ctx.createPattern(tile, 'repeat');
+    return paperPattern;
+  }
+
+  function lerpColor(hexA, hexB, t) {
+    const a = parseInt(hexA.slice(1), 16);
+    const b = parseInt(hexB.slice(1), 16);
+    const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+    const br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+    const r = Math.round(ar + (br - ar) * t);
+    const g = Math.round(ag + (bg - ag) * t);
+    const bl = Math.round(ab + (bb - ab) * t);
+    return `rgb(${r},${g},${bl})`;
+  }
+
+  // Full-bleed woodblock backdrop: sky wash, vermilion sun, Rinpa clouds, Fuji-style ridges & Hokusai waves
+  function drawBackdrop(ctx, w, h, stageIdx, time, scrollBoost, arenaRect) {
+    const p = STAGE_PALETTES[stageIdx % STAGE_PALETTES.length];
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, p.skyTop);
+    grad.addColorStop(0.56, p.skyMid);
+    grad.addColorStop(1, p.skyLow);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle vertical woodblock sunbeams on boss stage
+    const sunX = w * 0.5;
+    const sunY = h * p.sunY;
+    const sunScale = Math.min(w, h) / 800;
+    const sunR = p.sunR * Math.max(0.75, sunScale);
+
+    if (stageIdx % 5 === 4) {
+      ctx.save();
+      ctx.translate(sunX, sunY);
+      ctx.rotate(time * 0.04);
+      const rays = 16;
+      ctx.fillStyle = 'rgba(243, 193, 81, 0.16)';
+      for (let i = 0; i < rays; i++) {
+        const a0 = (i / rays) * Math.PI * 2;
+        const a1 = a0 + Math.PI / rays * 0.45;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, Math.max(w, h), a0, a1);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Outer gold-leaf halo around the sun
+    const halo = ctx.createRadialGradient(sunX, sunY, sunR * 0.75, sunX, sunY, sunR * 2.25);
+    halo.addColorStop(0, 'rgba(244, 185, 76, 0.34)');
+    halo.addColorStop(0.55, 'rgba(244, 185, 76, 0.10)');
+    halo.addColorStop(1, 'rgba(244, 185, 76, 0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, sunR * 2.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Vermilion sun disc with delicate ink & gold ring
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
+    const sunGrad = ctx.createRadialGradient(sunX - sunR * 0.18, sunY - sunR * 0.22, sunR * 0.1, sunX, sunY, sunR);
+    sunGrad.addColorStop(0, p.sunRing);
+    sunGrad.addColorStop(0.45, p.sunCore);
+    sunGrad.addColorStop(1, p.sunCore);
+    ctx.fillStyle = sunGrad;
+    ctx.fill();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = 'rgba(27, 22, 21, 0.22)';
+    ctx.stroke();
+
+    // Thin decorative concentric gold ring
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, sunR * 1.12, 0, Math.PI * 2);
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(200, 138, 30, 0.35)';
+    ctx.stroke();
+    ctx.restore();
+
+    // Stylized Rinpa horizontal cloud bands drifting slowly
+    drawRinpaCloudBand(ctx, w, h * 0.18, time * (10 + scrollBoost * 28), 1.0, p.cloudGold, p.cloudFill);
+    drawRinpaCloudBand(ctx, w, h * 0.48, -time * (7 + scrollBoost * 20) + 210, 0.85, p.cloudFill, p.cloudGold);
+    drawRinpaCloudBand(ctx, w, h * 0.67, time * (5 + scrollBoost * 16) + 95, 0.72, p.cloudGold, p.cloudFill);
+
+    // Distant volcanic ridge & temple silhouette
+    const horizonY = h * 0.84;
+    ctx.save();
+    ctx.fillStyle = p.mountainFar;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(0, horizonY - 24);
+    ctx.quadraticCurveTo(w * 0.16, horizonY - 68, w * 0.31, horizonY - 22);
+    ctx.quadraticCurveTo(w * 0.50, horizonY - 115, w * 0.69, horizonY - 18);
+    ctx.quadraticCurveTo(w * 0.85, horizonY - 56, w, horizonY - 20);
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+
+    // Snow-capped peak accent on center mountain
+    ctx.fillStyle = 'rgba(250, 243, 226, 0.65)';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.455, horizonY - 61);
+    ctx.quadraticCurveTo(w * 0.50, horizonY - 96, w * 0.545, horizonY - 60);
+    ctx.lineTo(w * 0.528, horizonY - 50);
+    ctx.lineTo(w * 0.512, horizonY - 57);
+    ctx.lineTo(w * 0.496, horizonY - 48);
+    ctx.lineTo(w * 0.48, horizonY - 56);
+    ctx.closePath();
+    ctx.fill();
+
+    // Nearer misty coastal ridge
+    ctx.fillStyle = p.mountainNear;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(0, horizonY + 8);
+    ctx.quadraticCurveTo(w * 0.22, horizonY - 26, w * 0.44, horizonY + 14);
+    ctx.quadraticCurveTo(w * 0.74, horizonY - 30, w, horizonY + 6);
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle torii gate silhouette on far left promontory
+    const tx = w * 0.13;
+    const ty = horizonY - 9;
+    ctx.fillStyle = 'rgba(165, 36, 16, 0.65)';
+    ctx.fillRect(tx - 10, ty - 18, 2.5, 19);
+    ctx.fillRect(tx + 7.5, ty - 18, 2.5, 19);
+    ctx.fillRect(tx - 15, ty - 19, 30, 3);
+    ctx.fillRect(tx - 12, ty - 13, 24, 2);
+    ctx.restore();
+
+    // Stylized Hokusai-inspired woodblock waves along the bottom
+    drawWoodblockWaves(ctx, w, h, h * 0.895, time * 1.15, p.waveBack, p.foam, 14, 0.55);
+    drawWoodblockWaves(ctx, w, h, h * 0.945, -time * 1.55 + 1.4, p.waveFront, p.foam, 18, 0.88);
+
+    // Subtle scroll margin ink framing around the logical playfield when wide
+    if (arenaRect && w - arenaRect.w > 70) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(27, 22, 21, 0.16)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(arenaRect.x - 10, 16);
+      ctx.lineTo(arenaRect.x - 10, h - 16);
+      ctx.moveTo(arenaRect.x + arenaRect.w + 10, 16);
+      ctx.lineTo(arenaRect.x + arenaRect.w + 10, h - 16);
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(200, 138, 30, 0.28)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(arenaRect.x - 15, 22);
+      ctx.lineTo(arenaRect.x - 15, h - 22);
+      ctx.moveTo(arenaRect.x + arenaRect.w + 15, 22);
+      ctx.lineTo(arenaRect.x + arenaRect.w + 15, h - 22);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Composite tactile washi paper grain over the background
+    const pat = ensurePaperPattern(ctx);
+    if (pat) {
+      ctx.save();
+      ctx.fillStyle = pat;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+    }
+  }
+
+  function drawRinpaCloudBand(ctx, w, baseY, offset, scale, fillMain, fillAccent) {
+    ctx.save();
+    const span = 520 * scale;
+    const start = ((offset % span) + span) % span - span;
+    for (let x = start; x < w + span; x += span) {
+      const y = baseY + Math.sin(x * 0.004) * 10;
+      ctx.fillStyle = fillMain;
+      ctx.beginPath();
+      ctx.roundRect(x, y, 220 * scale, 18 * scale, 9 * scale);
+      ctx.roundRect(x + 90 * scale, y - 10 * scale, 175 * scale, 16 * scale, 8 * scale);
+      ctx.roundRect(x + 210 * scale, y + 4 * scale, 140 * scale, 13 * scale, 6.5 * scale);
+      ctx.fill();
+
+      ctx.fillStyle = fillAccent;
+      ctx.beginPath();
+      ctx.roundRect(x + 18 * scale, y + 6 * scale, 148 * scale, 6 * scale, 3 * scale);
+      ctx.roundRect(x + 125 * scale, y - 4 * scale, 110 * scale, 5 * scale, 2.5 * scale);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawWoodblockWaves(ctx, w, h, baseY, phase, fillColor, foamColor, amp, foamAlpha) {
+    ctx.save();
+    const step = 96;
+    ctx.fillStyle = fillColor;
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(0, baseY);
+    for (let x = 0; x <= w + step; x += step) {
+      const wave = Math.sin(x * 0.015 + phase) * amp;
+      const crest = Math.cos(x * 0.03 - phase * 0.8) * (amp * 0.35);
+      ctx.quadraticCurveTo(x + step * 0.4, baseY + wave - amp * 0.85, x + step, baseY + crest);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+
+    // Foam rim & sumi contour
+    ctx.strokeStyle = foamColor;
+    ctx.globalAlpha = foamAlpha;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, baseY);
+    for (let x = 0; x <= w + step; x += step) {
+      const wave = Math.sin(x * 0.015 + phase) * amp;
+      const crest = Math.cos(x * 0.03 - phase * 0.8) * (amp * 0.35);
+      ctx.quadraticCurveTo(x + step * 0.4, baseY + wave - amp * 0.85, x + step, baseY + crest);
+    }
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(27, 22, 21, 0.38)';
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Player's Crimson Origami-Crane Skiff
+  function drawPlayerShip(ctx, x, y, tilt, wardActive, wardReady, wardPulse, invulnTimer, time, twinActive) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt * 0.14);
+
+    // Respawn flicker
+    if (invulnTimer > 0 && Math.floor(invulnTimer * 18) % 2 === 0) {
+      ctx.globalAlpha = 0.48;
+    }
+
+    // Subtle ready-aura behind the ship when Solar Ward is charged
+    if (wardReady && !wardActive) {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 4.5);
+      ctx.save();
+      ctx.strokeStyle = `rgba(214, 148, 30, ${0.26 + pulse * 0.28})`;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.arc(0, 2, 26 + pulse * 2.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Calligraphy exhaust plume
+    const flameH = 11 + Math.sin(time * 42) * 4;
+    ctx.fillStyle = '#e89d28';
+    ctx.beginPath();
+    ctx.moveTo(-6, 15);
+    ctx.lineTo(0, 17 + flameH);
+    ctx.lineTo(6, 15);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#fff8df';
+    ctx.beginPath();
+    ctx.moveTo(-3, 15);
+    ctx.lineTo(0, 15 + flameH * 0.6);
+    ctx.lineTo(3, 15);
+    ctx.closePath();
+    ctx.fill();
+
+    // Swept paper-lacquer wings
+    ctx.fillStyle = CREAM;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, -24);
+    ctx.lineTo(9, -4);
+    ctx.lineTo(24, 11);
+    ctx.lineTo(20, 16);
+    ctx.lineTo(7, 11);
+    ctx.lineTo(5, 17);
+    ctx.lineTo(0, 13);
+    ctx.lineTo(-5, 17);
+    ctx.lineTo(-7, 11);
+    ctx.lineTo(-20, 16);
+    ctx.lineTo(-24, 11);
+    ctx.lineTo(-9, -4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Vermilion lacquer wing panels
+    ctx.fillStyle = '#cf341c';
+    ctx.beginPath();
+    ctx.moveTo(-6, -2);
+    ctx.lineTo(-19, 11);
+    ctx.lineTo(-16, 13);
+    ctx.lineTo(-5, 8);
+    ctx.closePath();
+    ctx.moveTo(6, -2);
+    ctx.lineTo(19, 11);
+    ctx.lineTo(16, 13);
+    ctx.lineTo(5, 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Prussian-blue twin nose cannons when Twin Lance is active
+    if (twinActive) {
+      ctx.fillStyle = '#1b4070';
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.4;
+      ctx.fillRect(-13, -10, 4, 12);
+      ctx.strokeRect(-13, -10, 4, 12);
+      ctx.fillRect(9, -10, 4, 12);
+      ctx.strokeRect(9, -10, 4, 12);
+    }
+
+    // Center gold spine & solar jewel
+    ctx.fillStyle = '#d69926';
+    ctx.beginPath();
+    ctx.moveTo(0, -21);
+    ctx.lineTo(4.2, -3);
+    ctx.lineTo(0, 10);
+    ctx.lineTo(-4.2, -3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    // Solar Ward jewel on canopy
+    ctx.fillStyle = wardActive ? '#fff8d4' : (wardReady ? '#f5c247' : '#3a5473');
+    ctx.beginPath();
+    ctx.arc(0, -3, 3.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Active Solar Ward Mandala Barrier
+    if (wardActive) {
+      const r = 34 + Math.sin(time * 24) * 1.6;
+      const g = ctx.createRadialGradient(0, 0, r * 0.25, 0, 0, r);
+      g.addColorStop(0, 'rgba(255, 245, 200, 0.14)');
+      g.addColorStop(0.72, 'rgba(242, 184, 58, 0.34)');
+      g.addColorStop(1, 'rgba(207, 52, 28, 0.58)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rotating sacred mandala ring
+      ctx.save();
+      ctx.rotate(time * 2.8);
+      ctx.strokeStyle = '#cf341c';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#fff5cf';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(0, 0, r - 5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // 8 geometric sun petals around the rim
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.fillStyle = i % 2 === 0 ? '#f6c952' : '#cf341c';
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(r - 7, 0);
+        ctx.lineTo(r - 1, -3.5);
+        ctx.lineTo(r + 4, 0);
+        ctx.lineTo(r - 1, 3.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Remaining ward timer arc
+      if (wardPulse > 0) {
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * wardPulse);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // Woodblock Small Birds: 'swift' (Prussian blue), 'kingfisher' (Jade), 'kite' (Vermilion)
+  function drawSmallBird(ctx, bird, time) {
+    const flap = Math.sin(bird.flapPhase);
+    const wingLift = flap * 10;
+    const wingSpan = bird.type === 'kite' ? 23 : (bird.type === 'kingfisher' ? 21 : 19);
+
+    let mainColor = '#1e4d82';
+    let accentColor = '#f5ebd3';
+    let tipColor = '#142947';
+    if (bird.type === 'kingfisher') {
+      mainColor = '#1e7a61';
+      accentColor = '#e6b23e';
+      tipColor = '#144438';
+    } else if (bird.type === 'kite') {
+      mainColor = '#cf341c';
+      accentColor = '#f2be49';
+      tipColor = '#281816';
+    }
+
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(bird.angle);
+
+    // Subtle ivory paper cutout rim so birds stay ultra-legible over any cloud or sun
+    ctx.shadowColor = 'rgba(252, 245, 224, 0.65)';
+    ctx.shadowBlur = 4;
+
+    // Wings (symmetrical woodblock curves)
+    ctx.fillStyle = mainColor;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.9;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    // Left wing
+    ctx.moveTo(-4, -2);
+    ctx.quadraticCurveTo(-wingSpan * 0.55, -10 + wingLift * 0.5, -wingSpan, -4 + wingLift);
+    ctx.quadraticCurveTo(-wingSpan * 0.62, 6 + wingLift * 0.6, -5, 5);
+    // Tail
+    if (bird.type === 'swift') {
+      ctx.lineTo(-7, -14);
+      ctx.lineTo(0, -8);
+      ctx.lineTo(7, -14);
+    } else {
+      ctx.lineTo(-6, -13);
+      ctx.quadraticCurveTo(0, -16, 6, -13);
+    }
+    // Right wing
+    ctx.lineTo(5, 5);
+    ctx.quadraticCurveTo(wingSpan * 0.62, 6 + wingLift * 0.6, wingSpan, -4 + wingLift);
+    ctx.quadraticCurveTo(wingSpan * 0.55, -10 + wingLift * 0.5, 4, -2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.stroke();
+
+    // Dark painted wingtips
+    ctx.fillStyle = tipColor;
+    ctx.beginPath();
+    ctx.moveTo(-wingSpan * 0.64, -5 + wingLift * 0.7);
+    ctx.lineTo(-wingSpan, -4 + wingLift);
+    ctx.lineTo(-wingSpan * 0.65, 4 + wingLift * 0.7);
+    ctx.closePath();
+    ctx.moveTo(wingSpan * 0.64, -5 + wingLift * 0.7);
+    ctx.lineTo(wingSpan, -4 + wingLift);
+    ctx.lineTo(wingSpan * 0.65, 4 + wingLift * 0.7);
+    ctx.closePath();
+    ctx.fill();
+
+    // Feather ink strokes
+    ctx.strokeStyle = 'rgba(27, 22, 21, 0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-7, 1);
+    ctx.lineTo(-wingSpan * 0.68, -1 + wingLift * 0.7);
+    ctx.moveTo(7, 1);
+    ctx.lineTo(wingSpan * 0.68, -1 + wingLift * 0.7);
+    ctx.stroke();
+
+    // Central body & breast
+    ctx.fillStyle = accentColor;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(0, 2, 5.5, 9.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Beak pointing forward (+Y)
+    ctx.fillStyle = '#e5a325';
+    ctx.beginPath();
+    ctx.moveTo(-2.6, 10);
+    ctx.lineTo(0, 16);
+    ctx.lineTo(2.6, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Eyes
+    ctx.fillStyle = INK;
+    ctx.beginPath();
+    ctx.arc(-2.2, 7.2, 1.3, 0, Math.PI * 2);
+    ctx.arc(2.2, 7.2, 1.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Diving crimson glint
+    if (bird.state === 'diving') {
+      ctx.strokeStyle = 'rgba(207, 52, 28, 0.55)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(0, 2, 14 + Math.sin(time * 24) * 1.5, 0.25, Math.PI - 0.25);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // Kintsugi Porcelain Egg
+  function drawEgg(ctx, egg, time) {
+    ctx.save();
+    let shakeX = 0;
+    let shakeY = 0;
+    const hatchingSoon = egg.hatchTimer < 1.4;
+    if (hatchingSoon) {
+      const intensity = (1.4 - egg.hatchTimer) * 2.6;
+      shakeX = Math.sin(time * 58 + egg.phase) * intensity;
+      shakeY = Math.cos(time * 47 + egg.phase) * intensity * 0.7;
+    }
+
+    ctx.translate(egg.x + shakeX, egg.y + shakeY);
+    ctx.rotate(Math.sin(time * 4.5 + egg.phase) * 0.14);
+
+    // Warm golden aura as egg approaches hatching
+    if (hatchingSoon) {
+      const prog = 1 - egg.hatchTimer / 1.4;
+      const g = ctx.createRadialGradient(0, 0, 6, 0, 0, 26 + prog * 10);
+      g.addColorStop(0, `rgba(246, 190, 56, ${0.42 * prog})`);
+      g.addColorStop(1, 'rgba(207, 52, 28, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, 26 + prog * 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Egg silhouette
+    ctx.fillStyle = '#fbf5e4';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.1;
+    ctx.beginPath();
+    ctx.moveTo(0, -17);
+    ctx.bezierCurveTo(13, -15, 15, 4, 12, 12);
+    ctx.bezierCurveTo(9, 18, -9, 18, -12, 12);
+    ctx.bezierCurveTo(-15, 4, -13, -15, 0, -17);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cobalt porcelain glaze band & floral dot accents
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = '#235185';
+    ctx.fillRect(-16, -2, 32, 6);
+    ctx.fillStyle = '#d69926';
+    ctx.fillRect(-16, -3.5, 32, 1.5);
+    ctx.fillRect(-16, 4, 32, 1.5);
+    ctx.fillStyle = '#fbf5e4';
+    for (let dx = -9; dx <= 9; dx += 6) {
+      ctx.beginPath();
+      ctx.arc(dx, 1, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Shading crescent
+    ctx.fillStyle = 'rgba(27, 22, 21, 0.10)';
+    ctx.beginPath();
+    ctx.ellipse(6, 2, 10, 17, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Outer ink line
+    ctx.beginPath();
+    ctx.moveTo(0, -17);
+    ctx.bezierCurveTo(13, -15, 15, 4, 12, 12);
+    ctx.bezierCurveTo(9, 18, -9, 18, -12, 12);
+    ctx.bezierCurveTo(-15, 4, -13, -15, 0, -17);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Glowing Kintsugi cracks spreading as hatch nears
+    if (hatchingSoon) {
+      const prog = Math.min(1, (1.4 - egg.hatchTimer) / 1.4);
+      ctx.strokeStyle = '#d9381e';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(-2, -11);
+      ctx.lineTo(3, -3);
+      ctx.lineTo(-4, 4);
+      if (prog > 0.4) {
+        ctx.lineTo(5, 11);
+        ctx.moveTo(3, -3);
+        ctx.lineTo(9, 2);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffdf76';
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // Great Solar Phoenix (body + independently destructible & regrowing left/right wings)
+  function drawPhoenix(ctx, ph, time) {
+    const flap = Math.sin(ph.flapPhase);
+    ctx.save();
+    ctx.translate(ph.x, ph.y);
+    ctx.rotate(ph.angle);
+
+    // Draw each wing independently (-1 = left, +1 = right)
+    drawPhoenixWing(ctx, -1, ph.leftWing, ph.leftRegrow, flap, time);
+    drawPhoenixWing(ctx, 1, ph.rightWing, ph.rightRegrow, flap, time);
+
+    // Flowing ornamental tail ribbons (top / behind bird)
+    const tailSway = Math.sin(time * 7 + ph.phase) * 7;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.8;
+    for (let s = -1; s <= 1; s += 2) {
+      ctx.fillStyle = s === -1 ? '#cf341c' : '#d69422';
+      ctx.beginPath();
+      ctx.moveTo(s * 3, -12);
+      ctx.quadraticCurveTo(s * 14 + tailSway * 0.5, -26, s * 10 + tailSway, -40);
+      ctx.quadraticCurveTo(s * 4 + tailSway * 0.6, -28, 0, -15);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Center royal plume
+    ctx.fillStyle = '#f2be49';
+    ctx.beginPath();
+    ctx.moveTo(-3, -13);
+    ctx.quadraticCurveTo(tailSway * 0.4, -30, tailSway * 0.7, -44);
+    ctx.quadraticCurveTo(3 + tailSway * 0.3, -29, 3, -13);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Central Crowned Body (hitting this destroys the Great Phoenix!)
+    ctx.fillStyle = ph.hitFlash > 0 ? '#fff9e6' : '#c92e18';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.ellipse(0, 2, 13, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Gilded chest shield / solar emblem (visual target cue!)
+    ctx.fillStyle = '#f5c753';
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(7.5, 2);
+    ctx.lineTo(0, 12);
+    ctx.lineTo(-7.5, 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    // Inner vermilion heart dot
+    ctx.fillStyle = '#a81f0f';
+    ctx.beginPath();
+    ctx.arc(0, 2, 3.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Crowned crest feathers & fierce beak (+Y)
+    ctx.fillStyle = '#f2be49';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(-4, 17);
+    ctx.lineTo(0, 26);
+    ctx.lineTo(4, 17);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Fierce eyes
+    ctx.fillStyle = '#fff9de';
+    ctx.beginPath();
+    ctx.arc(-4.5, 13, 2.3, 0, Math.PI * 2);
+    ctx.arc(4.5, 13, 2.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = INK;
+    ctx.beginPath();
+    ctx.arc(-4.5, 13.6, 1.2, 0, Math.PI * 2);
+    ctx.arc(4.5, 13.6, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawPhoenixWing(ctx, side, alive, regrowTimer, flap, time) {
+    ctx.save();
+    ctx.scale(side, 1);
+
+    if (!alive) {
+      // Sheared stub + visible golden regrowth filaments
+      const progress = Math.max(0, Math.min(1, 1 - regrowTimer / 3.6));
+      ctx.fillStyle = '#5c2b1e';
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(11, -5);
+      ctx.lineTo(18, -2);
+      ctx.lineTo(16, 6);
+      ctx.lineTo(11, 7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      if (progress > 0.15) {
+        // Golden energy wing budding back into shape!
+        const budScale = 0.25 + progress * 0.72;
+        ctx.save();
+        ctx.globalAlpha = 0.35 + progress * 0.55;
+        ctx.scale(budScale, budScale);
+        ctx.fillStyle = '#f6c84f';
+        ctx.strokeStyle = '#cf341c';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(12, -4);
+        ctx.quadraticCurveTo(32, -16 + flap * 6, 54, -8 + flap * 12);
+        ctx.quadraticCurveTo(40, 12 + flap * 8, 12, 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+      return;
+    }
+
+    const lift = flap * 13;
+    // Outer sweeping crimson-gold wing
+    ctx.fillStyle = '#d43a1f';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.1;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(11, -6);
+    ctx.quadraticCurveTo(30, -19 + lift * 0.45, 55, -10 + lift);
+    // Scalloped primary feathers
+    ctx.lineTo(50, -1 + lift * 0.9);
+    ctx.lineTo(54, 4 + lift * 0.85);
+    ctx.lineTo(44, 7 + lift * 0.75);
+    ctx.lineTo(46, 13 + lift * 0.65);
+    ctx.lineTo(35, 11 + lift * 0.55);
+    ctx.lineTo(34, 16 + lift * 0.45);
+    ctx.quadraticCurveTo(22, 14 + lift * 0.3, 11, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Inner gilded plumage band
+    ctx.fillStyle = '#efb842';
+    ctx.beginPath();
+    ctx.moveTo(12, -2);
+    ctx.quadraticCurveTo(28, -9 + lift * 0.4, 45, -3 + lift * 0.8);
+    ctx.quadraticCurveTo(32, 7 + lift * 0.5, 12, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Prussian-blue shoulder accent
+    ctx.fillStyle = '#1d497a';
+    ctx.beginPath();
+    ctx.moveTo(12, -4);
+    ctx.quadraticCurveTo(22, -7 + lift * 0.25, 29, -1 + lift * 0.4);
+    ctx.quadraticCurveTo(20, 4 + lift * 0.2, 12, 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle shimmer on freshly regrown wings
+    if (regrowTimer < 0 && regrowTimer > -0.6) {
+      ctx.strokeStyle = `rgba(255, 245, 195, ${0.7 + Math.sin(time * 30) * 0.3})`;
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // The Sun-Ark Citadel — Screen-wide Imperial Woodblock Sky-Fortress
+  function drawSunArk(ctx, boss, time) {
+    ctx.save();
+    ctx.translate(boss.x, boss.y);
+
+    const halfW = boss.width * 0.5;
+
+    // 1. Upper Pagoda Hull & Upturned Imperial Eaves (Prussian slate + vermilion lacquer + gold trim)
+    ctx.fillStyle = '#1e3e68';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.6;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-halfW - 10, 8);
+    ctx.quadraticCurveTo(-halfW + 18, -12, -halfW + 78, -36);
+    ctx.lineTo(-144, -66);
+    ctx.lineTo(-154, -76);
+    ctx.lineTo(-104, -92);
+    ctx.lineTo(-56, -92);
+    ctx.lineTo(0, -118);
+    ctx.lineTo(56, -92);
+    ctx.lineTo(104, -92);
+    ctx.lineTo(154, -76);
+    ctx.lineTo(144, -66);
+    ctx.lineTo(halfW - 78, -36);
+    ctx.quadraticCurveTo(halfW - 18, -12, halfW + 10, 8);
+    ctx.lineTo(halfW - 14, 34);
+    ctx.lineTo(-halfW + 14, 34);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Subtle upper pagoda clerestory arches
+    ctx.fillStyle = '#f2c24b';
+    for (let ax = -84; ax <= 84; ax += 28) {
+      ctx.beginPath();
+      ctx.roundRect(ax - 5, -84, 10, 11, [4, 4, 0, 0]);
+      ctx.fill();
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    ctx.lineWidth = 2.6;
+
+    // Vermilion lacquer mid-deck superstructure
+    ctx.fillStyle = '#c4301a';
+    ctx.beginPath();
+    ctx.moveTo(-halfW + 42, 22);
+    ctx.lineTo(-halfW + 96, -24);
+    ctx.lineTo(halfW - 96, -24);
+    ctx.lineTo(halfW - 42, 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Gold-leaf ornamental trim bands & roof ribs
+    ctx.fillStyle = '#e5ae3c';
+    ctx.fillRect(-130, -68, 260, 10);
+    ctx.strokeRect(-130, -68, 260, 10);
+
+    ctx.strokeStyle = 'rgba(245, 206, 108, 0.72)';
+    ctx.lineWidth = 2;
+    for (let rx = -240; rx <= 240; rx += 40) {
+      ctx.beginPath();
+      ctx.moveTo(rx, -22);
+      ctx.lineTo(rx * 1.06, 20);
+      ctx.stroke();
+    }
+
+    // Golden finial spire at apex
+    ctx.fillStyle = '#f2c24b';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -142);
+    ctx.lineTo(7, -118);
+    ctx.lineTo(-7, -118);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Side Escort Launch Alcoves
+    for (let s = -1; s <= 1; s += 2) {
+      const bx = s * (halfW - 64);
+      ctx.fillStyle = '#181415';
+      ctx.strokeStyle = '#e8b343';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(bx - 22, 6, 44, 20, 4);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 2. Central Recessed Sanctum & Vulnerable Solar Core
+    ctx.fillStyle = '#1a1516';
+    ctx.strokeStyle = '#e8b343';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(-52, -46, 104, 68, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Solar Sovereign Core orb
+    const corePulse = 0.5 + 0.5 * Math.sin(time * 8);
+    const coreFlash = boss.coreHitFlash > 0;
+    const coreHpRatio = Math.max(0, boss.coreHp / boss.coreMaxHp);
+    const coreR = 23 + corePulse * 2.5;
+
+    const coreGlow = ctx.createRadialGradient(0, -12, 4, 0, -12, coreR * 1.85);
+    coreGlow.addColorStop(0, coreFlash ? 'rgba(255,255,255,0.95)' : 'rgba(255, 226, 128, 0.85)');
+    coreGlow.addColorStop(0.55, 'rgba(215, 58, 28, 0.55)');
+    coreGlow.addColorStop(1, 'rgba(215, 58, 28, 0)');
+    ctx.fillStyle = coreGlow;
+    ctx.beginPath();
+    ctx.arc(0, -12, coreR * 1.85, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = coreFlash ? '#ffffff' : (coreHpRatio < 0.35 ? '#ff5522' : '#d9371c');
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.arc(0, -12, coreR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Rotating golden sun-wheel emblem inside the Core
+    ctx.save();
+    ctx.translate(0, -12);
+    ctx.rotate(time * 1.8);
+    ctx.strokeStyle = '#fae08a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, coreR * 0.58, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 4, Math.sin(a) * 4);
+      ctx.lineTo(Math.cos(a) * (coreR - 2), Math.sin(a) * (coreR - 2));
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 3. Layer 2: Revolving Horizontal Shield Conveyor Belt (classic 1980 Phoenix!)
+    const beltY = boss.beltY;
+    const beltHalfW = boss.beltWidth * 0.5;
+
+    // Guide rail behind the moving belt
+    ctx.fillStyle = 'rgba(27, 22, 21, 0.55)';
+    ctx.fillRect(-beltHalfW - 6, beltY - 9, boss.beltWidth + 12, 18);
+    ctx.strokeStyle = '#d69926';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-beltHalfW - 6, beltY - 9, boss.beltWidth + 12, 18);
+
+    // Clip moving shield segments to the belt span
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(-beltHalfW, beltY - 12, boss.beltWidth, 24);
+    ctx.clip();
+    const segW = boss.beltSegW;
+    for (let i = 0; i < boss.belt.length; i++) {
+      const seg = boss.belt[i];
+      if (!seg.alive) continue;
+      // Compute wrapped X position along conveyor
+      const rawX = ((i * segW + boss.beltOffset) % boss.beltWidth + boss.beltWidth) % boss.beltWidth;
+      const drawXs = [rawX - beltHalfW];
+      if (rawX + segW > boss.beltWidth) drawXs.push(rawX - beltHalfW - boss.beltWidth);
+
+      for (const sx of drawXs) {
+        const pad = 2.5;
+        ctx.fillStyle = '#e5b242';
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(sx + pad, beltY - 8, segW - pad * 2, 16, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Rivet & lacquer stripe
+        ctx.fillStyle = '#a82714';
+        ctx.fillRect(sx + pad + 4, beltY - 2, segW - pad * 2 - 8, 4);
+      }
+    }
+    ctx.restore();
+
+    // 4. Layer 1: Outer Bulwark — Multi-row Destructible Lacquered Armour Tiles
+    for (let i = 0; i < boss.tiles.length; i++) {
+      const t = boss.tiles[i];
+      if (!t.alive) continue;
+      const tx = t.x - t.w * 0.5;
+      const ty = t.y - t.h * 0.5;
+      ctx.fillStyle = t.row === 0 ? '#d23b21' : (t.row === 1 ? '#f0dec0' : '#244d7e');
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.roundRect(tx + 1, ty + 1, t.w - 2, t.h - 2, 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Small gold highlight notch on each lacquer tile
+      ctx.fillStyle = 'rgba(246, 206, 102, 0.72)';
+      ctx.fillRect(tx + 4, ty + 3, t.w - 8, 2.5);
+    }
+
+    // 5. Twin Dragon Lantern Wing Turrets
+    for (let i = 0; i < boss.turrets.length; i++) {
+      const tur = boss.turrets[i];
+      const charge = Math.max(0, 1 - tur.cooldown / 0.55);
+      ctx.save();
+      ctx.translate(tur.x, tur.y);
+      ctx.fillStyle = '#d69824';
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = charge > 0.3 ? '#fff7d4' : '#b92614';
+      ctx.beginPath();
+      ctx.arc(0, 0, 5.5 + charge * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // Player Sun-Lance Shot
+  function drawPlayerShot(ctx, s) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    // Warm trailing ink streak
+    const grad = ctx.createLinearGradient(0, -10, 0, 18);
+    grad.addColorStop(0, '#cf341c');
+    grad.addColorStop(0.55, '#f0b63e');
+    grad.addColorStop(1, 'rgba(240, 182, 62, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(-2.5, -8, 5, 24);
+
+    // Crisp sun-lance tip
+    ctx.fillStyle = '#fff9e6';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -13);
+    ctx.lineTo(3.8, -2);
+    ctx.lineTo(0, 7);
+    ctx.lineTo(-3.8, -2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Enemy Obsidian-Ringed Ember Bead (high contrast against light paper!)
+  function drawEnemyShot(ctx, b, time) {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    const r = b.big ? 6.8 : 5.2;
+
+    // Dark ink outer halo for instant readability on bright sunlit parchment
+    ctx.fillStyle = INK;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Vermilion ember body
+    ctx.fillStyle = b.big ? '#e6421d' : '#cf2e18';
+    ctx.beginPath();
+    ctx.arc(0, 0, r - 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pulsing pale-gold hot center
+    const core = 2 + Math.sin(time * 24 + b.x) * 0.6;
+    ctx.fillStyle = '#fff5cc';
+    ctx.beginPath();
+    ctx.arc(0, 0, core, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Twin Lance Paper Lantern Power-up
+  function drawPowerup(ctx, p, time) {
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(Math.sin(time * 5 + p.phase) * 0.12);
+
+    // Soft radiant halo
+    ctx.fillStyle = 'rgba(242, 188, 60, 0.32)';
+    ctx.beginPath();
+    ctx.arc(0, 0, 19 + Math.sin(time * 8) * 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lantern caps
+    ctx.fillStyle = INK;
+    ctx.fillRect(-7, -14, 14, 3);
+    ctx.fillRect(-7, 11, 14, 3);
+
+    // Glowing lantern body
+    ctx.fillStyle = '#d6361c';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 11, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Gold II emblem
+    ctx.fillStyle = '#fff3c4';
+    ctx.fillRect(-4.5, -6, 3, 12);
+    ctx.fillRect(1.5, -6, 3, 12);
+    ctx.restore();
+  }
+
+  // Particles: painted feathers, gold leaf flakes, lacquer splinters, ink sunburst rings
+  function drawParticles(ctx, particles) {
+    for (let i = 0; i < particles.length; i++) {
+      const pt = particles[i];
+      const alpha = Math.max(0, pt.life / pt.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(pt.x, pt.y);
+      ctx.rotate(pt.rot);
+
+      if (pt.kind === 'ring') {
+        const rad = pt.r0 + (pt.r1 - pt.r0) * (1 - alpha);
+        ctx.strokeStyle = pt.color;
+        ctx.lineWidth = 2.6 * alpha + 0.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, rad, 0, Math.PI * 2);
+        ctx.stroke();
+      } else if (pt.kind === 'feather') {
+        ctx.fillStyle = pt.color;
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, pt.size * 1.45, pt.size * 0.48, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      } else if (pt.kind === 'shard') {
+        ctx.fillStyle = pt.color;
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-pt.size, -pt.size * 0.6);
+        ctx.lineTo(pt.size, -pt.size * 0.2);
+        ctx.lineTo(pt.size * 0.3, pt.size);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        // Gold leaf / ember spark
+        ctx.fillStyle = pt.color;
+        ctx.fillRect(-pt.size * 0.5, -pt.size * 0.5, pt.size, pt.size);
+      }
+
+      ctx.restore();
+    }
+  }
+
+  // Floating calligraphic score popups
+  function drawPopups(ctx, popups) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < popups.length; i++) {
+      const pop = popups[i];
+      const alpha = Math.min(1, (pop.life / pop.maxLife) * 1.6);
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.font = pop.big
+        ? '700 18px "Cinzel", Georgia, serif'
+        : '600 13px "IBM Plex Mono", monospace';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(250, 241, 220, 0.92)';
+      ctx.strokeText(pop.text, pop.x, pop.y);
+      ctx.fillStyle = pop.color || INK;
+      ctx.fillText(pop.text, pop.x, pop.y);
+    }
+    ctx.restore();
+  }
+
+  // SVG markup for lives indicator crane icon
+  function getLifeIconSVG() {
+    return '<svg class="life-icon" viewBox="0 0 28 28" aria-hidden="true">' +
+      '<path d="M14 3 L18 11 L26 19 L23 22 L17 19 L14 23 L11 19 L5 22 L2 19 L10 11 Z" fill="#faf1dc" stroke="#1b1615" stroke-width="1.8" stroke-linejoin="round"/>' +
+      '<path d="M14 5 L16.4 13 L14 19 L11.6 13 Z" fill="#cf341c"/>' +
+      '</svg>';
+  }
+
+  global.SuncrestArt = {
+    STAGE_PALETTES,
+    lerpColor,
+    drawBackdrop,
+    drawPlayerShip,
+    drawSmallBird,
+    drawEgg,
+    drawPhoenix,
+    drawSunArk,
+    drawPlayerShot,
+    drawEnemyShot,
+    drawPowerup,
+    drawParticles,
+    drawPopups,
+    getLifeIconSVG
+  };
+})(window);
+
+</script>
+<script>
+/* Suncrest — Web Audio Pentatonic Koto, Taiko, Shakuhachi & Woodblock Synth */
+(function (global) {
+  'use strict';
+
+  // Japanese In-sen / Hirajoshi pentatonic frequencies (D minor pentatonic coloration)
+  const SCALE_LOW = [146.83, 155.56, 196.00, 220.00, 261.63]; // D3 Eb3 G3 A3 C4
+  const SCALE_MID = [293.66, 311.13, 392.00, 440.00, 523.25, 587.33, 622.25, 783.99];
+  const KOTO_PATTERNS = [
+    [0, 2, 3, 5, 3, 2, 1, 0, 2, 3, 4, 5, 4, 3, 2, 1],
+    [0, 3, 2, 5, 6, 5, 3, 2, 0, 4, 3, 5, 7, 5, 4, 3],
+    [0, 1, 3, 0, 4, 3, 2, 1, 5, 4, 3, 2, 3, 1, 0, 2]
+  ];
+
+  class SoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.master = null;
+      this.musicGain = null;
+      this.sfxGain = null;
+      this.noiseBuf = null;
+      this.muted = false;
+      this.musicMode = 'idle'; // 'idle' | 'flock' | 'brood' | 'boss'
+      this.step = 0;
+      this.nextNoteTime = 0;
+      this.timerId = null;
+    }
+
+    init() {
+      if (this.ctx) {
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+        return;
+      }
+      const AudioCtx = global.AudioContext || global.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      this.ctx = new AudioCtx();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : 0.72;
+      this.master.connect(this.ctx.destination);
+
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.36;
+      this.musicGain.connect(this.master);
+
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = 0.78;
+      this.sfxGain.connect(this.master);
+
+      // Shared white-noise buffer for woodblocks, taiko skins, explosions
+      const len = this.ctx.sampleRate * 1.2;
+      this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const data = this.noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      this.nextNoteTime = this.ctx.currentTime + 0.08;
+      this.timerId = setInterval(() => this._schedule(), 55);
+    }
+
+    setMuted(m) {
+      this.muted = !!m;
+      if (this.master && this.ctx) {
+        this.master.gain.setTargetAtTime(this.muted ? 0 : 0.72, this.ctx.currentTime, 0.02);
+      }
+    }
+
+    toggleMute() {
+      this.setMuted(!this.muted);
+      return this.muted;
+    }
+
+    setMusicMode(mode) {
+      this.musicMode = mode;
+    }
+
+    _schedule() {
+      if (!this.ctx || this.ctx.state !== 'running' || this.muted) return;
+      const tempo = this.musicMode === 'boss' ? 132 : (this.musicMode === 'brood' ? 114 : 106);
+      const stepDur = (60 / tempo) / 2; // eighth notes
+      const now = this.ctx.currentTime;
+      if (this.nextNoteTime < now - 0.25) {
+        this.nextNoteTime = now + 0.05;
+      }
+      while (this.nextNoteTime < now + 0.22) {
+        this._playMusicStep(this.step, this.nextNoteTime, stepDur);
+        this.nextNoteTime += stepDur;
+        this.step = (this.step + 1) % 32;
+      }
+    }
+
+    _playMusicStep(step, t, dur) {
+      if (this.musicMode === 'idle') {
+        // Gentle sparse koto arpeggio on title screen
+        if (step % 4 === 0) {
+          const idx = KOTO_PATTERNS[0][(step / 2) % 16];
+          this._kotoPluck(SCALE_MID[idx], t, 0.65, 0.16);
+        }
+        return;
+      }
+
+      const patIdx = this.musicMode === 'boss' ? 2 : (this.musicMode === 'brood' ? 1 : 0);
+      const noteIdx = KOTO_PATTERNS[patIdx][step % 16];
+
+      // Plucked koto lead
+      if (step % 2 === 0 || (this.musicMode === 'boss' && step % 4 === 3)) {
+        const freq = SCALE_MID[noteIdx] * (step >= 16 ? 1 : 1);
+        this._kotoPluck(freq, t, dur * 2.1, this.musicMode === 'boss' ? 0.22 : 0.18);
+      }
+
+      // Low shamisen/bass anchor on bar beats
+      if (step % 8 === 0) {
+        const bass = SCALE_LOW[(step / 8) % SCALE_LOW.length];
+        this._kotoPluck(bass, t, dur * 3.2, 0.22);
+      }
+
+      // Taiko drum rhythm
+      const isBoss = this.musicMode === 'boss';
+      if (step % 8 === 0 || (isBoss && (step % 8 === 3 || step % 8 === 6)) || (!isBoss && step % 16 === 10)) {
+        this._taikoHit(t, step % 8 === 0 ? 0.34 : 0.22, isBoss ? 82 : 94);
+      }
+
+      // Hyoshigi woodblock accent
+      if (step % 8 === 4 || (isBoss && step % 4 === 2)) {
+        this._woodblock(t, 1280 + (step % 4) * 140, 0.08);
+      }
+
+      // Breathy shakuhachi-style flute swell every 16 steps
+      if (step % 16 === 0) {
+        const fluteNote = SCALE_MID[(noteIdx + 2) % SCALE_MID.length];
+        this._fluteNote(fluteNote, t, dur * 4.5, 0.09);
+      }
+    }
+
+    _kotoPluck(freq, t, dur, vol) {
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, t);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(freq * 5.2, t);
+      filter.frequency.exponentialRampToValueAtTime(freq * 1.15, t + dur * 0.7);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.musicGain);
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
+    }
+
+    _taikoHit(t, vol, baseHz) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseHz * 1.85, t);
+      osc.frequency.exponentialRampToValueAtTime(baseHz * 0.62, t + 0.16);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.007);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      osc.connect(gain);
+      gain.connect(this.musicGain);
+      osc.start(t);
+      osc.stop(t + 0.26);
+    }
+
+    _woodblock(t, hz, vol) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(hz, t);
+      osc.frequency.exponentialRampToValueAtTime(hz * 0.78, t + 0.045);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+      osc.connect(gain);
+      gain.connect(this.musicGain);
+      osc.start(t);
+      osc.stop(t + 0.06);
+    }
+
+    _fluteNote(freq, t, dur, vol) {
+      const osc = this.ctx.createOscillator();
+      const lfo = this.ctx.createOscillator();
+      const lfoGain = this.ctx.createGain();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      lfo.frequency.setValueAtTime(5.2, t);
+      lfoGain.gain.setValueAtTime(4.5, t);
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(vol, t + dur * 0.25);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(gain);
+      gain.connect(this.musicGain);
+      osc.start(t);
+      lfo.start(t);
+      osc.stop(t + dur + 0.03);
+      lfo.stop(t + dur + 0.03);
+    }
+
+    // --- Sound Effects ---
+    _ready() {
+      return this.ctx && this.ctx.state === 'running' && !this.muted;
+    }
+
+    playShot() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(980, t);
+      osc.frequency.exponentialRampToValueAtTime(340, t + 0.085);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.095);
+    }
+
+    playBirdHit(high) {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(high ? 720 : 540, t);
+      osc.frequency.exponentialRampToValueAtTime(190, t + 0.13);
+      gain.gain.setValueAtTime(0.24, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.15);
+      this._noiseBurst(t, 0.09, 1400, 0.12);
+    }
+
+    playEggBreak() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      [1180, 1520, 880].forEach((hz, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(hz, t + idx * 0.02);
+        gain.gain.setValueAtTime(0.16, t + idx * 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + idx * 0.02 + 0.09);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + idx * 0.02);
+        osc.stop(t + idx * 0.02 + 0.1);
+      });
+    }
+
+    playEggHatch() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(240, t);
+      osc.frequency.exponentialRampToValueAtTime(520, t + 0.22);
+      gain.gain.setValueAtTime(0.14, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.26);
+    }
+
+    playWingShear() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      this._noiseBurst(t, 0.15, 2200, 0.2);
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(640, t);
+      osc.frequency.exponentialRampToValueAtTime(280, t + 0.14);
+      gain.gain.setValueAtTime(0.16, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.16);
+    }
+
+    playWingRegrow() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      [392, 523.25, 659.25].forEach((hz, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(hz, t + idx * 0.045);
+        gain.gain.setValueAtTime(0.11, t + idx * 0.045);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + idx * 0.045 + 0.16);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + idx * 0.045);
+        osc.stop(t + idx * 0.045 + 0.18);
+      });
+    }
+
+    playPhoenixKill() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      this._taikoFx(t, 120, 0.36);
+      this._noiseBurst(t, 0.24, 900, 0.22);
+      [587.33, 880].forEach((hz, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(hz, t + i * 0.03);
+        gain.gain.setValueAtTime(0.16, t + i * 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + i * 0.03);
+        osc.stop(t + 0.34);
+      });
+    }
+
+    playWardActivate() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      [293.66, 440, 587.33, 880].forEach((hz, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(hz, t + i * 0.025);
+        gain.gain.setValueAtTime(0.14, t + i * 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + i * 0.025);
+        osc.stop(t + 0.58);
+      });
+    }
+
+    playWardDeflect() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1320, t);
+      osc.frequency.exponentialRampToValueAtTime(880, t + 0.09);
+      gain.gain.setValueAtTime(0.16, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.11);
+    }
+
+    playWardReady() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      [587.33, 783.99].forEach((hz, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(hz, t + i * 0.06);
+        gain.gain.setValueAtTime(0.11, t + i * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.06 + 0.22);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + i * 0.06);
+        osc.stop(t + i * 0.06 + 0.24);
+      });
+    }
+
+    playTileBreak(isBronze) {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = isBronze ? 'square' : 'triangle';
+      osc.frequency.setValueAtTime(isBronze ? 460 : 340, t);
+      osc.frequency.exponentialRampToValueAtTime(isBronze ? 220 : 150, t + 0.11);
+      gain.gain.setValueAtTime(isBronze ? 0.16 : 0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.13);
+    }
+
+    playBossCoreHit() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      // Resonant bronze temple gong hit
+      [196, 293.66, 466.16, 622.25].forEach((hz, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = idx === 0 ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(hz, t);
+        osc.frequency.exponentialRampToValueAtTime(hz * 0.96, t + 0.45);
+        gain.gain.setValueAtTime(0.16 / (idx + 1), t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.48);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        osc.stop(t + 0.5);
+      });
+    }
+
+    playBossDestroy() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      for (let i = 0; i < 6; i++) {
+        const dt = i * 0.24;
+        this._taikoFx(t + dt, 105 - i * 8, 0.35);
+        this._noiseBurst(t + dt, 0.35, 700 - i * 60, 0.26);
+      }
+      this.playStageClear(0.95);
+    }
+
+    playPlayerHit() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      this._taikoFx(t, 95, 0.42);
+      this._noiseBurst(t, 0.42, 620, 0.34);
+    }
+
+    playExtraLife() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      [293.66, 392.00, 440.00, 587.33, 783.99].forEach((hz, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(hz, t + i * 0.075);
+        gain.gain.setValueAtTime(0.2, t + i * 0.075);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.075 + 0.32);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + i * 0.075);
+        osc.stop(t + i * 0.075 + 0.35);
+      });
+    }
+
+    playStageClear(delay) {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime + (delay || 0);
+      [392.00, 440.00, 523.25, 587.33].forEach((hz, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(hz, t + i * 0.085);
+        gain.gain.setValueAtTime(0.18, t + i * 0.085);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.085 + 0.36);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + i * 0.085);
+        osc.stop(t + i * 0.085 + 0.38);
+      });
+    }
+
+    playPowerup() {
+      if (!this._ready()) return;
+      const t = this.ctx.currentTime;
+      [440, 587.33, 880].forEach((hz, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(hz, t + i * 0.05);
+        gain.gain.setValueAtTime(0.16, t + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.05 + 0.22);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t + i * 0.05);
+        osc.stop(t + i * 0.05 + 0.24);
+      });
+    }
+
+    _taikoFx(t, hz, vol) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(hz * 1.9, t);
+      osc.frequency.exponentialRampToValueAtTime(hz * 0.48, t + 0.26);
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.34);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.36);
+    }
+
+    _noiseBurst(t, dur, cutoff, vol) {
+      if (!this.noiseBuf) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.noiseBuf;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(cutoff, t);
+      filter.frequency.exponentialRampToValueAtTime(cutoff * 0.35, t + dur);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(vol, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+      src.start(t);
+      src.stop(t + dur + 0.02);
+    }
+  }
+
+  global.SuncrestAudio = SoundEngine;
+})(window);
+
+</script>
+<script>
+/* Suncrest — Formations, Small Birds, Kintsugi Eggs, Great Phoenixes & The Sun-Ark Boss */
+(function (global) {
+  'use strict';
+
+  const ARENA_W = 820;
+  const ARENA_H = 760;
+
+  // Classic 5-stage Phoenix cycle definitions
+  const STAGE_TYPES = ['flock1', 'flock2', 'brood1', 'brood2', 'boss'];
+
+  // Formation templates: K = Vermilion Kite, J = Jade Kingfisher, S = Azure Swift
+  const FORMATIONS_FLOCK1 = [
+    [
+      '....K.K.K.K....',
+      '..J.J.J.J.J.J..',
+      '.S.S.S.S.S.S.S.',
+      '...S.S.S.S.S...'
+    ],
+    [
+      '...K..K.K..K...',
+      '.J.J..J.J..J.J.',
+      'S.S.S.S.S.S.S.S',
+      '..S.S.....S.S..'
+    ]
+  ];
+
+  const FORMATIONS_FLOCK2 = [
+    [
+      'K.K...K.K...K.K',
+      '.J.J.J.J.J.J.J.',
+      '..S.S.S.S.S.S..',
+      '.S.S.S...S.S.S.'
+    ],
+    [
+      '..K.K.K.K.K.K..',
+      'J.J.J.....J.J.J',
+      '.S.S.S.S.S.S.S.',
+      '...S.S.S.S.S...'
+    ]
+  ];
+
+  const BIRD_SPECS = {
+    swift: {
+      points: 40,
+      diveSpeed: 235,
+      weaveAmp: 54,
+      weaveFreq: 5.2,
+      shots: 1,
+      hitR: 15,
+      flapSpeed: 14,
+      featherColor: '#1e4d82'
+    },
+    kingfisher: {
+      points: 60,
+      diveSpeed: 285,
+      weaveAmp: 34,
+      weaveFreq: 4.1,
+      shots: 1,
+      hitR: 16,
+      flapSpeed: 12,
+      featherColor: '#1e7a61'
+    },
+    kite: {
+      points: 90,
+      diveSpeed: 335,
+      weaveAmp: 20,
+      weaveFreq: 3.4,
+      shots: 2,
+      hitR: 17,
+      flapSpeed: 10.5,
+      featherColor: '#cf341c'
+    }
+  };
+
+  function createFlock(stageType, cycle) {
+    const pool = stageType === 'flock1' ? FORMATIONS_FLOCK1 : FORMATIONS_FLOCK2;
+    const grid = pool[(cycle - 1) % pool.length];
+    const birds = [];
+    const cols = grid[0].length;
+    const spacingX = 44;
+    const spacingY = 48;
+    const startX = (ARENA_W - (cols - 1) * spacingX) * 0.5;
+    const startY = 122;
+
+    let idx = 0;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < cols; c++) {
+        const ch = grid[r][c];
+        if (ch === '.') continue;
+        const type = ch === 'K' ? 'kite' : (ch === 'J' ? 'kingfisher' : 'swift');
+        const spec = BIRD_SPECS[type];
+        const homeX = startX + c * spacingX;
+        const homeY = startY + r * spacingY;
+        const fromLeft = idx % 2 === 0;
+        const entryX = fromLeft ? -45 : ARENA_W + 45;
+        const entryY = 70 + (r * 55) + (idx % 3) * 28;
+        birds.push({
+          id: idx + 1,
+          type,
+          spec,
+          x: entryX,
+          y: entryY,
+          vx: 0,
+          vy: 0,
+          angle: 0,
+          homeX,
+          homeY,
+          row: r,
+          col: c,
+          state: 'entering', // 'entering' | 'formation' | 'diving' | 'returning'
+          entryDelay: idx * 0.065,
+          entryT: 0,
+          entryP0: { x: entryX, y: entryY },
+          entryP1: { x: fromLeft ? ARENA_W * 0.28 : ARENA_W * 0.72, y: 310 + r * 20 },
+          entryP2: { x: homeX + (fromLeft ? -60 : 60), y: homeY - 60 },
+          flapPhase: Math.random() * Math.PI * 2,
+          diveTime: 0,
+          diveDir: 1,
+          shotsLeft: spec.shots,
+          nextShotTime: 0.45,
+          isEscort: false
+        });
+        idx++;
+      }
+    }
+    return birds;
+  }
+
+  function createEscortBird(x, y, side, cycle) {
+    const type = Math.random() < 0.42 ? 'kingfisher' : 'swift';
+    const spec = BIRD_SPECS[type];
+    const homeX = Math.max(90, Math.min(ARENA_W - 90, x + side * (25 + Math.random() * 40)));
+    const homeY = Math.min(410, y + 65 + Math.random() * 45);
+    return {
+      id: Math.random(),
+      type,
+      spec,
+      x,
+      y,
+      vx: side * 90,
+      vy: 60,
+      angle: 0,
+      homeX,
+      homeY,
+      row: 0,
+      col: 0,
+      state: 'diving',
+      entryDelay: 0,
+      entryT: 1,
+      flapPhase: Math.random() * Math.PI * 2,
+      diveTime: 0.1,
+      diveDir: side,
+      shotsLeft: 1 + (cycle >= 3 ? 1 : 0),
+      nextShotTime: 0.55 + Math.random() * 0.45,
+      isEscort: true
+    };
+  }
+
+  function createEggs(stageType, cycle) {
+    const baseCount = stageType === 'brood1' ? 6 : 8;
+    const count = Math.min(14, baseCount + (cycle - 1) * 2);
+    const eggs = [];
+    for (let i = 0; i < count; i++) {
+      const lane = i % 4;
+      const baseY = 128 + lane * 66 + (Math.random() * 14 - 7);
+      const fromLeft = i % 2 === 0;
+      eggs.push({
+        id: i + 1,
+        x: fromLeft ? 70 + (i * 42) % 240 : ARENA_W - 70 - (i * 42) % 240,
+        y: baseY,
+        baseY,
+        vx: (fromLeft ? 1 : -1) * (125 + Math.random() * 48 + (cycle - 1) * 18),
+        bobAmp: 22 + Math.random() * 14,
+        bobFreq: 2.2 + Math.random() * 1.1,
+        phase: Math.random() * Math.PI * 2,
+        hatchTimer: 3.4 + i * 0.85 + Math.random() * 0.7,
+        radius: 17
+      });
+    }
+    return eggs;
+  }
+
+  function createPhoenixFromEgg(egg, cycle) {
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    return {
+      id: Math.random(),
+      x: egg.x,
+      y: egg.y,
+      vx: dir * (110 + (cycle - 1) * 14),
+      vy: -20,
+      angle: 0,
+      phase: Math.random() * Math.PI * 2,
+      flapPhase: Math.random() * Math.PI * 2,
+      leftWing: true,
+      rightWing: true,
+      leftRegrow: 0,  // >0 while regrowing; briefly negative after regrown for shimmer
+      rightRegrow: 0,
+      hitFlash: 0,
+      state: 'cruising', // 'cruising' | 'swooping' | 'recovering'
+      targetX: 110 + Math.random() * (ARENA_W - 220),
+      targetY: 115 + Math.random() * 210,
+      retargetTimer: 1.2 + Math.random() * 1.2,
+      swoopTimer: 2.2 + Math.random() * 2.4,
+      shotsLeft: 0,
+      nextShotTimer: 0.4,
+      bodyR: 16
+    };
+  }
+
+  function createSunArk(cycle) {
+    const width = 670;
+    const beltWidth = 448;
+    const beltSegCount = 16;
+    const beltSegW = beltWidth / beltSegCount;
+    const beltY = 36;
+
+    // Layer 2: Revolving horizontal bronze shield belt
+    const belt = [];
+    for (let i = 0; i < beltSegCount; i++) {
+      belt.push({
+        alive: true,
+        regrowTimer: 0
+      });
+    }
+
+    // Layer 1: Outer Bulwark — 3 rows x 14 columns of destructible lacquer armour tiles
+    const tiles = [];
+    const cols = 14;
+    const rows = 3;
+    const tileW = 36;
+    const tileH = 15;
+    const totalTileW = cols * tileW;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        // Gentle curved pagoda underside profile: outer corners slightly tucked
+        const distCenter = Math.abs(c - (cols - 1) * 0.5);
+        if (r === 2 && distCenter > 5.2) continue;
+        tiles.push({
+          row: r,
+          col: c,
+          x: -totalTileW * 0.5 + (c + 0.5) * tileW,
+          y: beltY + 21 + r * (tileH + 2),
+          w: tileW,
+          h: tileH,
+          alive: true
+        });
+      }
+    }
+
+    const coreMaxHp = 10 + (cycle - 1) * 4;
+    return {
+      x: ARENA_W * 0.5,
+      y: -155,
+      targetStartY: 224,
+      entering: true,
+      width,
+      swayPhase: 0,
+      swayAmp: 58,
+      descentSpeed: 5.5 + (cycle - 1) * 1.35,
+      maxY: 475,
+      coreHp: coreMaxHp,
+      coreMaxHp,
+      coreHitFlash: 0,
+      coreY: -12,
+      coreR: 25,
+      beltWidth,
+      beltSegW,
+      beltY,
+      beltOffset: 0,
+      beltSpeed: 74 + (cycle - 1) * 15,
+      belt,
+      tiles,
+      turrets: [
+        { x: -214, y: 24, cooldown: 1.4 },
+        { x: 214, y: 24, cooldown: 2.1 }
+      ],
+      escortTimer: 2.6,
+      dying: false,
+      dyingTimer: 0,
+      explosionTick: 0
+    };
+  }
+
+  // Swept point-to-SunArk layer collision (bottom-to-top: Armor Tiles -> Revolving Shield Belt -> Core/Hull)
+  // Returns { hit: false } or { hit: true, kind: 'tile'|'belt'|'core'|'hull', x, y, target }
+  function testShotAgainstSunArk(boss, prevX, prevY, currX, currY) {
+    if (boss.dying || boss.entering) return { hit: false };
+
+    // Sample up to 4 substeps along vertical segment so fast shots never tunnel through 15px tiles
+    const steps = 4;
+    for (let s = 1; s <= steps; s++) {
+      const f = s / steps;
+      const wx = prevX + (currX - prevX) * f;
+      const wy = prevY + (currY - prevY) * f;
+      const lx = wx - boss.x;
+      const ly = wy - boss.y;
+
+      // Bounding box early out
+      if (Math.abs(lx) > boss.width * 0.5 + 8 || ly < -115 || ly > 110) continue;
+
+      // 1. Layer 1: Outer lacquer armour tiles (check bottom rows first)
+      for (let i = boss.tiles.length - 1; i >= 0; i--) {
+        const t = boss.tiles[i];
+        if (!t.alive) continue;
+        if (Math.abs(lx - t.x) <= t.w * 0.5 + 3 && Math.abs(ly - t.y) <= t.h * 0.5 + 4) {
+          return { hit: true, kind: 'tile', x: boss.x + t.x, y: boss.y + t.y, target: t };
+        }
+      }
+
+      // 2. Layer 2: Revolving horizontal bronze shield conveyor belt
+      if (Math.abs(lx) <= boss.beltWidth * 0.5 && Math.abs(ly - boss.beltY) <= 10) {
+        const halfBelt = boss.beltWidth * 0.5;
+        const posInBelt = lx + halfBelt;
+        const shifted = ((posInBelt - boss.beltOffset) % boss.beltWidth + boss.beltWidth) % boss.beltWidth;
+        const segIdx = Math.floor(shifted / boss.beltSegW) % boss.belt.length;
+        const seg = boss.belt[segIdx];
+        if (seg && seg.alive) {
+          return { hit: true, kind: 'belt', x: wx, y: boss.y + boss.beltY, target: seg };
+        }
+      }
+
+      // 3. Vulnerable Solar Sovereign Core (recessed inside the sanctum above the belt)
+      const dxC = lx;
+      const dyC = ly - boss.coreY;
+      if (dxC * dxC + dyC * dyC <= (boss.coreR + 4) * (boss.coreR + 4)) {
+        return { hit: true, kind: 'core', x: boss.x, y: boss.y + boss.coreY, target: boss };
+      }
+
+      // 4. Indestructible outer hull underside (blocks shots outside the central sanctum opening)
+      if (ly <= 26 && Math.abs(lx) > 48 && Math.abs(lx) <= boss.width * 0.5 - 10) {
+        return { hit: true, kind: 'hull', x: wx, y: wy, target: null };
+      }
+      // Top ceiling of sanctum
+      if (ly <= -42 && Math.abs(lx) <= 52) {
+        return { hit: true, kind: 'hull', x: wx, y: wy, target: null };
+      }
+    }
+
+    return { hit: false };
+  }
+
+  global.SuncrestEntities = {
+    ARENA_W,
+    ARENA_H,
+    STAGE_TYPES,
+    BIRD_SPECS,
+    createFlock,
+    createEscortBird,
+    createEggs,
+    createPhoenixFromEgg,
+    createSunArk,
+    testShotAgainstSunArk
+  };
+})(window);
+
+</script>
+<script>
+/* Suncrest — Core Game Loop, Ship & Solar Ward, Scoring, Input & HUD */
+(function (global) {
+  'use strict';
+
+  const Art = global.SuncrestArt;
+  const Audio = global.SuncrestAudio;
+  const Ent = global.SuncrestEntities;
+
+  const VERSION = '1.0.0';
+  const STORAGE_KEY = 'suncrest.best';
+  const ARENA_W = Ent.ARENA_W;
+  const ARENA_H = Ent.ARENA_H;
+
+  const SHIP_Y = 664;
+  const SHIP_SPEED = 490;
+  const SHOT_SPEED = 840;
+  const FIRE_COOLDOWN = 0.16;
+  const WARD_DURATION = 2.0;
+  const WARD_COOLDOWN = 5.0;
+  const WING_REGROW_TIME = 3.6;
+
+  // DOM refs
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const hudEl = document.getElementById('hud');
+  const scoreEl = document.getElementById('hud-score');
+  const bestEl = document.getElementById('hud-best');
+  const titleBestEl = document.getElementById('title-best');
+  const cycleEl = document.getElementById('hud-cycle');
+  const stageNameEl = document.getElementById('hud-stage-name');
+  const comboSealEl = document.getElementById('combo-seal');
+  const livesWrapEl = document.getElementById('lives-wrap');
+  const powerupBadgeEl = document.getElementById('powerup-badge');
+  const powerupTimerEl = document.getElementById('powerup-timer');
+  const wardStateEl = document.getElementById('ward-state');
+  const wardFillEl = document.getElementById('ward-fill');
+  const bossBarWrap = document.getElementById('boss-bar-wrap');
+  const bossFillEl = document.getElementById('boss-fill');
+  const bossLabelEl = document.getElementById('boss-label');
+
+  const bannerEl = document.getElementById('banner');
+  const bannerKickerEl = document.getElementById('banner-kicker');
+  const bannerTitleEl = document.getElementById('banner-title');
+  const bannerSubEl = document.getElementById('banner-sub');
+
+  const titleOverlay = document.getElementById('title-overlay');
+  const pauseOverlay = document.getElementById('pause-overlay');
+  const gameoverOverlay = document.getElementById('gameover-overlay');
+  const goScoreEl = document.getElementById('go-score');
+  const goBestEl = document.getElementById('go-best');
+  const goStageEl = document.getElementById('go-stage');
+  const newBestTagEl = document.getElementById('new-best-tag');
+  const touchControlsEl = document.getElementById('touch-controls');
+
+  const btnStart = document.getElementById('btn-start');
+  const btnTitleMute = document.getElementById('btn-title-mute');
+  const btnMute = document.getElementById('btn-mute');
+  const btnPause = document.getElementById('btn-pause');
+  const btnResume = document.getElementById('btn-resume');
+  const btnPauseRestart = document.getElementById('btn-pause-restart');
+  const btnPauseTitle = document.getElementById('btn-pause-title');
+  const btnRestart = document.getElementById('btn-restart');
+  const btnGoTitle = document.getElementById('btn-go-title');
+
+  const audio = new Audio();
+
+  function loadBestScore() {
+    try {
+      const val = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+      return Number.isFinite(val) && val > 0 ? val : 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  function saveBestScore(score) {
+    try {
+      localStorage.setItem(STORAGE_KEY, String(score));
+    } catch (_) {
+      // Ignore storage errors (private mode / restricted file contexts)
+    }
+  }
+
+  function fmtScore(n) {
+    return String(Math.max(0, Math.floor(n))).padStart(6, '0');
+  }
+
+  // Game state
+  const state = {
+    mode: 'title', // 'title' | 'playing' | 'paused' | 'gameover'
+    time: 0,
+    score: 0,
+    best: loadBestScore(),
+    newBestAchieved: false,
+    practiceMode: false, // true when ?stage=N query param is used
+    lives: 3,
+    nextExtraLife: 10000,
+    stageNum: 1, // 1-based global stage index
+    cycle: 1,
+    stageInCycle: 0, // 0..4
+    stageClearTimer: 0,
+    bannerTimer: 0,
+    scrollBoost: 0,
+    shakeTime: 0,
+    shakeMag: 0,
+    comboCount: 0,
+    comboTimer: 0,
+    formationSway: 0,
+    diveCooldown: 1.0,
+    // Entities
+    player: {
+      x: ARENA_W * 0.5,
+      y: SHIP_Y,
+      vx: 0,
+      tilt: 0,
+      alive: true,
+      respawnTimer: 0,
+      invulnTimer: 0,
+      fireCooldown: 0,
+      wardActiveTimer: 0,
+      wardCooldownTimer: 0,
+      wardWasReady: true,
+      twinTimer: 0
+    },
+    birds: [],
+    eggs: [],
+    phoenixes: [],
+    boss: null,
+    playerShots: [],
+    enemyShots: [],
+    powerups: [],
+    particles: [],
+    popups: [],
+    // Ambient title flock
+    titleBirds: []
+  };
+
+  // Input tracking
+  const input = {
+    left: false,
+    right: false,
+    fire: false,
+    wardQueued: false,
+    pointerActive: false,
+    pointerArenaX: ARENA_W * 0.5
+  };
+
+  // Viewport & arena transform
+  const view = {
+    w: 1280,
+    h: 800,
+    dpr: 1,
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+    arenaRect: { x: 0, y: 0, w: ARENA_W, h: ARENA_H }
+  };
+
+  function resize() {
+    view.w = Math.max(320, window.innerWidth);
+    view.h = Math.max(320, window.innerHeight);
+    view.dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(view.w * view.dpr);
+    canvas.height = Math.round(view.h * view.dpr);
+
+    const touchExtra = document.body.classList.contains('touch-active') ? 76 : 0;
+    const availH = Math.max(260, view.h - touchExtra);
+    view.scale = Math.min(view.w / ARENA_W, availH / ARENA_H);
+    const drawW = ARENA_W * view.scale;
+    const drawH = ARENA_H * view.scale;
+    view.offsetX = (view.w - drawW) * 0.5;
+    view.offsetY = (availH - drawH) * 0.5;
+    view.arenaRect = { x: view.offsetX, y: view.offsetY, w: drawW, h: drawH };
+  }
+
+  function screenToArenaX(clientX) {
+    return (clientX - view.offsetX) / view.scale;
+  }
+
+  // --- Particle & Popup Helpers ---
+  function spawnBurst(x, y, count, color, kind, speedMin, speedMax) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = speedMin + Math.random() * (speedMax - speedMin);
+      const maxLife = 0.45 + Math.random() * 0.5;
+      state.particles.push({
+        x,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 10,
+        size: kind === 'feather' ? 5 + Math.random() * 4 : (3 + Math.random() * 4),
+        life: maxLife,
+        maxLife,
+        color,
+        kind: kind || 'spark',
+        gravity: kind === 'feather' ? 42 : (kind === 'shard' ? 140 : 12)
+      });
+    }
+  }
+
+  function spawnRing(x, y, r0, r1, color, dur) {
+    state.particles.push({
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      rot: 0,
+      vrot: 0,
+      r0,
+      r1,
+      life: dur || 0.36,
+      maxLife: dur || 0.36,
+      color,
+      kind: 'ring',
+      gravity: 0
+    });
+  }
+
+  function spawnPopup(x, y, text, color, big) {
+    state.popups.push({
+      x,
+      y,
+      text,
+      color: color || '#1b1615',
+      big: !!big,
+      life: big ? 1.25 : 0.85,
+      maxLife: big ? 1.25 : 0.85
+    });
+  }
+
+  function addShake(mag, dur) {
+    state.shakeMag = Math.max(state.shakeMag, mag);
+    state.shakeTime = Math.max(state.shakeTime, dur);
+  }
+
+  // --- Scoring, Multiplier & Extra Lives ---
+  function getMultiplier() {
+    if (state.comboCount >= 9) return 4;
+    if (state.comboCount >= 6) return 3;
+    if (state.comboCount >= 3) return 2;
+    return 1;
+  }
+
+  function registerKillCombo() {
+    state.comboCount++;
+    state.comboTimer = 2.6;
+  }
+
+  function addScore(points, x, y, countTowardCombo, bigPopup) {
+    if (countTowardCombo) registerKillCombo();
+    const mult = countTowardCombo ? getMultiplier() : 1;
+    const gained = points * mult;
+    state.score += gained;
+
+    if (x !== undefined && y !== undefined) {
+      const label = mult > 1 ? `+${gained} ×${mult}` : `+${gained}`;
+      spawnPopup(x, y, label, mult > 1 ? '#cf341c' : '#1b1615', bigPopup);
+    }
+
+    if (!state.practiceMode && state.score > state.best) {
+      state.best = state.score;
+      state.newBestAchieved = true;
+      saveBestScore(state.best);
+    }
+
+    // Extra life award at 10,000, then every 20,000 (up to 5 lives)
+    while (state.score >= state.nextExtraLife) {
+      if (state.lives < 5) {
+        state.lives++;
+        audio.playExtraLife();
+        showBanner('Imperial Blessing', 'Extra Ship', `Awarded at ${state.nextExtraLife.toLocaleString()} points`, 2.2);
+        renderLives();
+      }
+      state.nextExtraLife = state.nextExtraLife === 10000 ? 30000 : state.nextExtraLife + 20000;
+    }
+
+    updateHud();
+  }
+
+  function showBanner(kicker, title, sub, duration) {
+    bannerKickerEl.textContent = kicker;
+    bannerTitleEl.textContent = title;
+    bannerSubEl.textContent = sub || '';
+    state.bannerTimer = duration || 2.1;
+    bannerEl.classList.add('visible');
+  }
+
+  // --- Stage Setup ---
+  function setupStage(stageNum) {
+    state.stageNum = stageNum;
+    state.cycle = Math.floor((stageNum - 1) / 5) + 1;
+    state.stageInCycle = (stageNum - 1) % 5;
+    const stageType = Ent.STAGE_TYPES[state.stageInCycle];
+    const pal = Art.STAGE_PALETTES[state.stageInCycle];
+
+    state.birds = [];
+    state.eggs = [];
+    state.phoenixes = [];
+    state.boss = null;
+    state.enemyShots = [];
+    state.playerShots = [];
+    state.stageClearTimer = 0;
+    state.scrollBoost = 1.0;
+    state.diveCooldown = Math.max(0.45, 1.15 - (state.cycle - 1) * 0.15);
+
+    if (stageType === 'flock1' || stageType === 'flock2') {
+      state.birds = Ent.createFlock(stageType, state.cycle);
+      audio.setMusicMode('flock');
+    } else if (stageType === 'brood1' || stageType === 'brood2') {
+      state.eggs = Ent.createEggs(stageType, state.cycle);
+      audio.setMusicMode('brood');
+    } else {
+      state.boss = Ent.createSunArk(state.cycle);
+      audio.setMusicMode('boss');
+    }
+
+    const cycleTag = `Cycle ${state.cycle} · Stage ${state.stageInCycle + 1}`;
+    showBanner(cycleTag, pal.name, pal.sub, 2.3);
+    updateHud();
+  }
+
+  function startGame(startStage) {
+    audio.init();
+    state.practiceMode = typeof startStage === 'number' && startStage > 1;
+    state.mode = 'playing';
+    state.score = 0;
+    state.newBestAchieved = false;
+    state.lives = 3;
+    state.nextExtraLife = 10000;
+    state.comboCount = 0;
+    state.comboTimer = 0;
+    state.particles = [];
+    state.popups = [];
+    state.powerups = [];
+
+    const pl = state.player;
+    pl.x = ARENA_W * 0.5;
+    pl.y = SHIP_Y;
+    pl.vx = 0;
+    pl.tilt = 0;
+    pl.alive = true;
+    pl.respawnTimer = 0;
+    pl.invulnTimer = 1.6;
+    pl.fireCooldown = 0;
+    pl.wardActiveTimer = 0;
+    pl.wardCooldownTimer = 0;
+    pl.wardWasReady = true;
+    pl.twinTimer = 0;
+
+    titleOverlay.classList.remove('visible');
+    pauseOverlay.classList.remove('visible');
+    gameoverOverlay.classList.remove('visible');
+    hudEl.classList.add('visible');
+    touchControlsEl.classList.add('visible');
+
+    renderLives();
+    setupStage(startStage || 1);
+  }
+
+  function returnToTitle() {
+    state.mode = 'title';
+    audio.setMusicMode('idle');
+    hudEl.classList.remove('visible');
+    pauseOverlay.classList.remove('visible');
+    gameoverOverlay.classList.remove('visible');
+    bannerEl.classList.remove('visible');
+    bossBarWrap.classList.remove('visible');
+    touchControlsEl.classList.remove('visible');
+    titleOverlay.classList.add('visible');
+    titleBestEl.textContent = fmtScore(state.best);
+    state.titleBirds = Ent.createFlock('flock1', 1);
+  }
+
+  function togglePause(forcePause) {
+    if (state.mode !== 'playing' && state.mode !== 'paused') return;
+    const shouldPause = typeof forcePause === 'boolean' ? forcePause : state.mode === 'playing';
+    if (shouldPause && state.mode === 'playing') {
+      state.mode = 'paused';
+      pauseOverlay.classList.add('visible');
+    } else if (!shouldPause && state.mode === 'paused') {
+      state.mode = 'playing';
+      pauseOverlay.classList.remove('visible');
+    }
+  }
+
+  function triggerGameOver() {
+    state.mode = 'gameover';
+    audio.setMusicMode('idle');
+    bannerEl.classList.remove('visible');
+    bossBarWrap.classList.remove('visible');
+    touchControlsEl.classList.remove('visible');
+
+    goScoreEl.textContent = fmtScore(state.score);
+    goBestEl.textContent = fmtScore(state.best);
+    goStageEl.textContent = `C${state.cycle} · S${state.stageInCycle + 1}`;
+    newBestTagEl.classList.toggle('visible', state.newBestAchieved && !state.practiceMode);
+    gameoverOverlay.classList.add('visible');
+  }
+
+  // --- Player Damage & Solar Ward ---
+  function activateWard() {
+    const pl = state.player;
+    if (!pl.alive || pl.wardActiveTimer > 0 || pl.wardCooldownTimer > 0) return;
+    pl.wardActiveTimer = WARD_DURATION;
+    pl.wardWasReady = false;
+    audio.playWardActivate();
+    spawnRing(pl.x, pl.y, 12, 46, '#d69926', 0.34);
+  }
+
+  function damagePlayer() {
+    const pl = state.player;
+    if (!pl.alive || pl.invulnTimer > 0 || pl.wardActiveTimer > 0) return;
+    pl.alive = false;
+    pl.twinTimer = 0;
+    state.comboCount = 0;
+    state.comboTimer = 0;
+    state.lives--;
+    renderLives();
+
+    audio.playPlayerHit();
+    addShake(11, 0.42);
+    spawnRing(pl.x, pl.y, 10, 68, '#cf341c', 0.45);
+    spawnBurst(pl.x, pl.y, 26, '#cf341c', 'shard', 70, 260);
+    spawnBurst(pl.x, pl.y, 18, '#f4c14a', 'spark', 50, 220);
+
+    if (state.lives <= 0) {
+      pl.respawnTimer = 1.4;
+    } else {
+      pl.respawnTimer = 1.5;
+      // Push boss up slightly if it had descended onto the ship
+      if (state.boss && !state.boss.dying && state.boss.y > 410) {
+        state.boss.y -= 85;
+      }
+    }
+  }
+
+  function maybeDropPowerup(x, y, chance) {
+    if (state.powerups.length >= 1) return;
+    if (Math.random() < chance) {
+      state.powerups.push({
+        x,
+        y,
+        vy: 112,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  // --- HUD Rendering ---
+  function renderLives() {
+    let html = '';
+    for (let i = 0; i < state.lives; i++) {
+      html += Art.getLifeIconSVG();
+    }
+    livesWrapEl.innerHTML = html || '<span class="hud-label" style="font-size:10px">LAST</span>';
+  }
+
+  function updateHud() {
+    scoreEl.textContent = fmtScore(state.score);
+    bestEl.textContent = fmtScore(state.best);
+    titleBestEl.textContent = fmtScore(state.best);
+
+    const pal = Art.STAGE_PALETTES[state.stageInCycle];
+    cycleEl.textContent = `Cycle ${state.cycle} · Stage ${state.stageInCycle + 1}`;
+    stageNameEl.textContent = pal.name;
+
+    const mult = getMultiplier();
+    comboSealEl.textContent = `×${mult}`;
+    comboSealEl.classList.toggle('active', mult > 1 && state.comboTimer > 0);
+
+    // Solar Ward gauge
+    const pl = state.player;
+    if (pl.wardActiveTimer > 0) {
+      const pct = (pl.wardActiveTimer / WARD_DURATION) * 100;
+      wardStateEl.textContent = 'ACTIVE';
+      wardStateEl.className = 'active';
+      wardFillEl.className = 'active';
+      wardFillEl.style.width = `${pct.toFixed(1)}%`;
+    } else if (pl.wardCooldownTimer > 0) {
+      const pct = (1 - pl.wardCooldownTimer / WARD_COOLDOWN) * 100;
+      wardStateEl.textContent = `${pl.wardCooldownTimer.toFixed(1)}s`;
+      wardStateEl.className = 'recharging';
+      wardFillEl.className = 'recharging';
+      wardFillEl.style.width = `${pct.toFixed(1)}%`;
+    } else {
+      wardStateEl.textContent = 'READY';
+      wardStateEl.className = '';
+      wardFillEl.className = '';
+      wardFillEl.style.width = '100%';
+    }
+
+    // Twin Lance power-up badge
+    if (pl.twinTimer > 0) {
+      powerupBadgeEl.classList.add('visible');
+      powerupTimerEl.textContent = `${Math.ceil(pl.twinTimer)}s`;
+    } else {
+      powerupBadgeEl.classList.remove('visible');
+    }
+
+    // Boss HP bar
+    if (state.boss && !state.boss.dying && state.mode === 'playing') {
+      bossBarWrap.classList.add('visible');
+      bossLabelEl.textContent = state.cycle > 1 ? `The Sun-Ark · Cycle ${state.cycle}` : 'The Sun-Ark';
+      const pct = Math.max(0, (state.boss.coreHp / state.boss.coreMaxHp) * 100);
+      bossFillEl.style.width = `${pct.toFixed(1)}%`;
+    } else {
+      bossBarWrap.classList.remove('visible');
+    }
+  }
+
+  function syncMuteButtons() {
+    const label = audio.muted ? 'Muted' : 'Sound';
+    btnMute.textContent = label;
+    btnTitleMute.textContent = audio.muted ? 'Sound: Off' : 'Sound: On';
+  }
+
+  // --- Update Loops ---
+  function updateTitleFlock(dt) {
+    state.formationSway += dt * 1.15;
+    const swayX = Math.sin(state.formationSway) * 52;
+    for (const b of state.titleBirds) {
+      b.flapPhase += dt * b.spec.flapSpeed;
+      if (b.state === 'entering') {
+        if (b.entryDelay > 0) {
+          b.entryDelay -= dt;
+          continue;
+        }
+        b.entryT = Math.min(1, b.entryT + dt * 0.9);
+        const t = b.entryT;
+        const mt = 1 - t;
+        const tx = b.homeX + swayX;
+        const ty = b.homeY;
+        const nx = mt * mt * mt * b.entryP0.x + 3 * mt * mt * t * b.entryP1.x + 3 * mt * t * t * b.entryP2.x + t * t * t * tx;
+        const ny = mt * mt * mt * b.entryP0.y + 3 * mt * mt * t * b.entryP1.y + 3 * mt * t * t * b.entryP2.y + t * t * t * ty;
+        b.angle = Math.atan2(ny - b.y, nx - b.x) - Math.PI * 0.5;
+        b.x = nx;
+        b.y = ny;
+        if (b.entryT >= 1) {
+          b.state = 'formation';
+          b.angle = 0;
+        }
+      } else {
+        b.x = b.homeX + swayX;
+        b.y = b.homeY + Math.sin(state.time * 2.2 + b.col * 0.6) * 6;
+        b.angle = Math.sin(state.formationSway) * 0.08;
+      }
+    }
+  }
+
+  function updateGame(dt) {
+    state.time += dt;
+    state.scrollBoost = Math.max(0, state.scrollBoost - dt * 0.65);
+
+    if (state.shakeTime > 0) {
+      state.shakeTime = Math.max(0, state.shakeTime - dt);
+      if (state.shakeTime === 0) state.shakeMag = 0;
+    }
+
+    if (state.bannerTimer > 0) {
+      state.bannerTimer -= dt;
+      if (state.bannerTimer <= 0) {
+        bannerEl.classList.remove('visible');
+      }
+    }
+
+    if (state.comboTimer > 0) {
+      state.comboTimer -= dt;
+      if (state.comboTimer <= 0) state.comboCount = 0;
+    }
+
+    updatePlayer(dt);
+    updateShots(dt);
+    updateBirds(dt);
+    updateEggs(dt);
+    updatePhoenixes(dt);
+    updateBoss(dt);
+    updatePowerups(dt);
+    updateParticlesAndPopups(dt);
+    checkStageClear(dt);
+    updateHud();
+  }
+
+  function updatePlayer(dt) {
+    const pl = state.player;
+    if (!pl.alive) {
+      pl.respawnTimer -= dt;
+      if (pl.respawnTimer <= 0) {
+        if (state.lives <= 0) {
+          triggerGameOver();
+          return;
+        }
+        pl.alive = true;
+        pl.x = ARENA_W * 0.5;
+        pl.y = SHIP_Y;
+        pl.vx = 0;
+        pl.invulnTimer = 2.4;
+        pl.wardActiveTimer = 0;
+        pl.wardCooldownTimer = 0;
+        pl.wardWasReady = true;
+      }
+      return;
+    }
+
+    if (pl.invulnTimer > 0) pl.invulnTimer = Math.max(0, pl.invulnTimer - dt);
+    if (pl.fireCooldown > 0) pl.fireCooldown = Math.max(0, pl.fireCooldown - dt);
+    if (pl.twinTimer > 0) pl.twinTimer = Math.max(0, pl.twinTimer - dt);
+
+    // Solar Ward state machine
+    if (input.wardQueued) {
+      input.wardQueued = false;
+      activateWard();
+    }
+    if (pl.wardActiveTimer > 0) {
+      pl.wardActiveTimer -= dt;
+      if (pl.wardActiveTimer <= 0) {
+        pl.wardActiveTimer = 0;
+        pl.wardCooldownTimer = WARD_COOLDOWN;
+      }
+    } else if (pl.wardCooldownTimer > 0) {
+      pl.wardCooldownTimer = Math.max(0, pl.wardCooldownTimer - dt);
+      if (pl.wardCooldownTimer === 0 && !pl.wardWasReady) {
+        pl.wardWasReady = true;
+        audio.playWardReady();
+        spawnRing(pl.x, pl.y, 16, 38, '#e9b949', 0.35);
+      }
+    }
+
+    // Horizontal movement (slightly slower while Solar Ward is active)
+    const speedFactor = pl.wardActiveTimer > 0 ? 0.55 : 1.0;
+    let moveDir = 0;
+    if (input.left) moveDir -= 1;
+    if (input.right) moveDir += 1;
+
+    if (moveDir !== 0) {
+      pl.vx = moveDir * SHIP_SPEED * speedFactor;
+      pl.x += pl.vx * dt;
+    } else if (input.pointerActive) {
+      const diff = input.pointerArenaX - pl.x;
+      const maxStep = SHIP_SPEED * 1.15 * speedFactor * dt;
+      const step = Math.max(-maxStep, Math.min(maxStep, diff));
+      pl.vx = dt > 0 ? step / dt : 0;
+      pl.x += step;
+    } else {
+      pl.vx *= 0.72;
+    }
+
+    pl.x = Math.max(42, Math.min(ARENA_W - 42, pl.x));
+    const targetTilt = Math.max(-1, Math.min(1, pl.vx / SHIP_SPEED));
+    pl.tilt += (targetTilt - pl.tilt) * Math.min(1, dt * 14);
+
+    // Firing (disabled while Solar Ward is raised)
+    const maxShots = pl.twinTimer > 0 ? 8 : 4;
+    if (input.fire && pl.wardActiveTimer <= 0 && pl.fireCooldown <= 0 && state.playerShots.length < maxShots) {
+      pl.fireCooldown = FIRE_COOLDOWN;
+      if (pl.twinTimer > 0) {
+        state.playerShots.push({ x: pl.x - 11, y: pl.y - 20, prevX: pl.x - 11, prevY: pl.y - 20, vy: -SHOT_SPEED });
+        state.playerShots.push({ x: pl.x + 11, y: pl.y - 20, prevX: pl.x + 11, prevY: pl.y - 20, vy: -SHOT_SPEED });
+      } else {
+        state.playerShots.push({ x: pl.x, y: pl.y - 22, prevX: pl.x, prevY: pl.y - 22, vy: -SHOT_SPEED });
+      }
+      audio.playShot();
+    }
+  }
+
+  function updateShots(dt) {
+    // Player shots
+    for (let i = state.playerShots.length - 1; i >= 0; i--) {
+      const s = state.playerShots[i];
+      s.prevX = s.x;
+      s.prevY = s.y;
+      s.y += s.vy * dt;
+
+      if (s.y < -20) {
+        state.playerShots.splice(i, 1);
+        continue;
+      }
+
+      let consumed = false;
+
+      // 1. Check against small birds
+      for (let j = state.birds.length - 1; j >= 0; j--) {
+        const b = state.birds[j];
+        if (b.state === 'entering' && b.entryDelay > 0) continue;
+        const dx = s.x - b.x;
+        const dy = s.y - b.y;
+        const r = b.spec.hitR + 6;
+        if (dx * dx + dy * dy <= r * r) {
+          const pts = b.state === 'diving' ? b.spec.points * 2 : b.spec.points;
+          addScore(pts, b.x, b.y, true, b.state === 'diving');
+          audio.playBirdHit(b.state === 'diving');
+          spawnBurst(b.x, b.y, 12, b.spec.featherColor, 'feather', 40, 180);
+          spawnRing(b.x, b.y, 6, 26, '#1b1615', 0.24);
+          if (b.state === 'diving') maybeDropPowerup(b.x, b.y, 0.08);
+          state.birds.splice(j, 1);
+          consumed = true;
+          break;
+        }
+      }
+      if (consumed) {
+        state.playerShots.splice(i, 1);
+        continue;
+      }
+
+      // 2. Check against Kintsugi eggs
+      for (let j = state.eggs.length - 1; j >= 0; j--) {
+        const e = state.eggs[j];
+        const dx = s.x - e.x;
+        const dy = s.y - e.y;
+        const r = e.radius + 6;
+        if (dx * dx + dy * dy <= r * r) {
+          addScore(50, e.x, e.y, true, false);
+          audio.playEggBreak();
+          spawnBurst(e.x, e.y, 11, '#fbf5e4', 'shard', 55, 195);
+          spawnBurst(e.x, e.y, 7, '#235185', 'shard', 45, 165);
+          spawnBurst(e.x, e.y, 6, '#e6b23e', 'spark', 40, 150);
+          state.eggs.splice(j, 1);
+          consumed = true;
+          break;
+        }
+      }
+      if (consumed) {
+        state.playerShots.splice(i, 1);
+        continue;
+      }
+
+      // 3. Check against Great Solar Phoenixes (Body kills; Wings shear off & regrow!)
+      for (let j = state.phoenixes.length - 1; j >= 0; j--) {
+        const ph = state.phoenixes[j];
+        const dx = s.x - ph.x;
+        const dy = s.y - ph.y;
+        // Rotate into phoenix local space
+        const ca = Math.cos(-ph.angle);
+        const sa = Math.sin(-ph.angle);
+        const lx = dx * ca - dy * sa;
+        const ly = dx * sa + dy * ca;
+
+        // Body hit destroys the Great Phoenix
+        if ((lx * lx) / (17 * 17) + (ly * ly) / (23 * 23) <= 1) {
+          const pts = ph.state === 'swooping' ? 400 : 250;
+          addScore(pts, ph.x, ph.y, true, true);
+          audio.playPhoenixKill();
+          addShake(4.5, 0.18);
+          spawnRing(ph.x, ph.y, 10, 46, '#cf341c', 0.34);
+          spawnBurst(ph.x, ph.y, 18, '#d43a1f', 'feather', 60, 230);
+          spawnBurst(ph.x, ph.y, 12, '#f2be49', 'feather', 50, 200);
+          maybeDropPowerup(ph.x, ph.y, 0.28);
+          state.phoenixes.splice(j, 1);
+          consumed = true;
+          break;
+        }
+
+        // Left wing hit
+        if (ph.leftWing && lx >= -58 && lx <= -14 && ly >= -22 && ly <= 22) {
+          ph.leftWing = false;
+          ph.leftRegrow = WING_REGROW_TIME;
+          ph.hitFlash = 0.14;
+          addScore(30, s.x, s.y, false, false);
+          audio.playWingShear();
+          spawnBurst(s.x, s.y, 11, '#d43a1f', 'feather', 40, 175);
+          spawnBurst(s.x, s.y, 6, '#f2be49', 'spark', 40, 140);
+          consumed = true;
+          break;
+        }
+
+        // Right wing hit
+        if (ph.rightWing && lx >= 14 && lx <= 58 && ly >= -22 && ly <= 22) {
+          ph.rightWing = false;
+          ph.rightRegrow = WING_REGROW_TIME;
+          ph.hitFlash = 0.14;
+          addScore(30, s.x, s.y, false, false);
+          audio.playWingShear();
+          spawnBurst(s.x, s.y, 11, '#d43a1f', 'feather', 40, 175);
+          spawnBurst(s.x, s.y, 6, '#f2be49', 'spark', 40, 140);
+          consumed = true;
+          break;
+        }
+      }
+      if (consumed) {
+        state.playerShots.splice(i, 1);
+        continue;
+      }
+
+      // 4. Check against The Sun-Ark Boss (Layer 1 Tiles -> Layer 2 Revolving Belt -> Core / Hull)
+      if (state.boss) {
+        const res = Ent.testShotAgainstSunArk(state.boss, s.prevX, s.prevY, s.x, s.y);
+        if (res.hit) {
+          consumed = true;
+          if (res.kind === 'tile') {
+            res.target.alive = false;
+            addScore(15, res.x, res.y, false, false);
+            audio.playTileBreak(false);
+            spawnBurst(res.x, res.y, 7, '#d23b21', 'shard', 40, 160);
+          } else if (res.kind === 'belt') {
+            res.target.alive = false;
+            res.target.regrowTimer = 18.0; // Slowly reforges far later if fight drags on
+            addScore(30, res.x, res.y, false, false);
+            audio.playTileBreak(true);
+            spawnBurst(res.x, res.y, 9, '#e5b242', 'shard', 50, 185);
+          } else if (res.kind === 'core') {
+            damageBossCore(1, res.x, res.y);
+          } else {
+            // Deflected by solid hull
+            spawnBurst(res.x, res.y, 4, '#f0dec0', 'spark', 30, 110);
+          }
+        }
+      }
+
+      if (consumed) {
+        state.playerShots.splice(i, 1);
+      }
+    }
+
+    // Enemy shots
+    const pl = state.player;
+    for (let i = state.enemyShots.length - 1; i >= 0; i--) {
+      const b = state.enemyShots[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      if (b.x < -30 || b.x > ARENA_W + 30 || b.y < -30 || b.y > ARENA_H + 30) {
+        state.enemyShots.splice(i, 1);
+        continue;
+      }
+
+      if (pl.alive) {
+        const dx = b.x - pl.x;
+        const dy = b.y - pl.y;
+        if (pl.wardActiveTimer > 0) {
+          // Solar Ward deflects & vaporizes enemy shots
+          if (dx * dx + dy * dy <= 38 * 38) {
+            audio.playWardDeflect();
+            spawnBurst(b.x, b.y, 6, '#f6c952', 'spark', 50, 160);
+            state.enemyShots.splice(i, 1);
+            continue;
+          }
+        } else if (dx * dx + dy * dy <= 16 * 16) {
+          state.enemyShots.splice(i, 1);
+          damagePlayer();
+        }
+      }
+    }
+  }
+
+  function damageBossCore(amount, hx, hy) {
+    const boss = state.boss;
+    if (!boss || boss.dying) return;
+    boss.coreHp = Math.max(0, boss.coreHp - amount);
+    boss.coreHitFlash = 0.16;
+    const x = hx !== undefined ? hx : boss.x;
+    const y = hy !== undefined ? hy : boss.y + boss.coreY;
+
+    addScore(150 * amount, x, y, false, true);
+    audio.playBossCoreHit();
+    addShake(6, 0.22);
+    spawnRing(x, y, 12, 54, '#f5c753', 0.34);
+    spawnBurst(x, y, 14, '#e6421d', 'spark', 60, 220);
+
+    if (boss.coreHp <= 0) {
+      boss.dying = true;
+      boss.dyingTimer = 2.6;
+      boss.explosionTick = 0;
+      state.enemyShots = [];
+      state.birds = []; // Clear remaining escorts
+      audio.playBossDestroy();
+      addScore(3000 * state.cycle, boss.x, boss.y, false, true);
+      showBanner('The Sun-Ark Falls', `+${(3000 * state.cycle).toLocaleString()}`, `Cycle ${state.cycle} complete`, 2.5);
+    }
+  }
+
+  function updateBirds(dt) {
+    state.formationSway += dt * (1.25 + (state.cycle - 1) * 0.12);
+    const swayX = Math.sin(state.formationSway) * 58;
+    const breathe = 1 + Math.sin(state.formationSway * 2) * 0.04;
+
+    const isGale = state.stageInCycle === 1;
+    const maxDivers = Math.min(7, 2 + Math.floor((state.cycle - 1) * 1.2) + (isGale ? 1 : 0));
+    const speedScale = 1 + Math.min(0.6, (state.cycle - 1) * 0.12) + (isGale ? 0.08 : 0);
+    const bulletSpeed = Math.min(460, 295 + (state.cycle - 1) * 28 + (isGale ? 18 : 0));
+
+    let divingCount = 0;
+    const readyToDive = [];
+
+    for (let i = state.birds.length - 1; i >= 0; i--) {
+      const b = state.birds[i];
+      b.flapPhase += dt * b.spec.flapSpeed;
+
+      if (b.state === 'entering') {
+        if (b.entryDelay > 0) {
+          b.entryDelay -= dt;
+          continue;
+        }
+        b.entryT = Math.min(1, b.entryT + dt * 1.05);
+        const t = b.entryT;
+        const mt = 1 - t;
+        const tx = ARENA_W * 0.5 + (b.homeX - ARENA_W * 0.5) * breathe + swayX;
+        const ty = b.homeY;
+        const nx = mt * mt * mt * b.entryP0.x + 3 * mt * mt * t * b.entryP1.x + 3 * mt * t * t * b.entryP2.x + t * t * t * tx;
+        const ny = mt * mt * mt * b.entryP0.y + 3 * mt * mt * t * b.entryP1.y + 3 * mt * t * t * b.entryP2.y + t * t * t * ty;
+        b.angle = Math.atan2(ny - b.y, nx - b.x) - Math.PI * 0.5;
+        b.x = nx;
+        b.y = ny;
+        if (b.entryT >= 1) {
+          b.state = 'formation';
+          b.angle = 0;
+        }
+      } else if (b.state === 'formation') {
+        const tx = ARENA_W * 0.5 + (b.homeX - ARENA_W * 0.5) * breathe + swayX;
+        const ty = b.homeY + Math.sin(state.time * 2.5 + b.col * 0.55) * 5;
+        b.x += (tx - b.x) * Math.min(1, dt * 8);
+        b.y += (ty - b.y) * Math.min(1, dt * 8);
+        b.angle *= 0.85;
+        readyToDive.push(b);
+      } else if (b.state === 'diving') {
+        divingCount++;
+        b.diveTime += dt;
+        const sp = b.spec.diveSpeed * speedScale;
+
+        // Track toward player until close to ship altitude, then commit straight so player can dodge
+        let targetVx = Math.sin(b.diveTime * b.spec.weaveFreq) * b.spec.weaveAmp * b.diveDir;
+        if (b.y < SHIP_Y - 145 && state.player.alive) {
+          const steer = Math.max(-180, Math.min(180, (state.player.x - b.x) * 1.1));
+          targetVx += steer;
+        }
+        b.vx += (targetVx - b.vx) * Math.min(1, dt * 3.4);
+        b.vy = Math.min(sp, b.vy + sp * 1.6 * dt);
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.angle = Math.atan2(b.vy, b.vx) - Math.PI * 0.5;
+
+        // Fire at player during dive
+        b.nextShotTime -= dt;
+        if (b.shotsLeft > 0 && b.nextShotTime <= 0 && b.y > 120 && b.y < SHIP_Y - 130 && state.player.alive) {
+          b.shotsLeft--;
+          b.nextShotTime = 0.55;
+          const dx = state.player.x - b.x;
+          const dy = state.player.y - b.y;
+          const len = Math.hypot(dx, dy) || 1;
+          state.enemyShots.push({
+            x: b.x,
+            y: b.y + 12,
+            vx: (dx / len) * bulletSpeed * 0.65,
+            vy: Math.max(bulletSpeed * 0.72, (dy / len) * bulletSpeed),
+            big: false
+          });
+        }
+
+        // Wrap back to top if escaped bottom
+        if (b.y > ARENA_H + 34) {
+          if (b.isEscort) {
+            state.birds.splice(i, 1);
+            continue;
+          }
+          b.y = -28;
+          b.x = Math.max(60, Math.min(ARENA_W - 60, b.homeX + swayX));
+          b.vx = 0;
+          b.vy = 110;
+          b.state = state.birds.length <= 4 ? 'diving' : 'returning';
+          b.diveTime = 0;
+          b.shotsLeft = b.spec.shots;
+          b.nextShotTime = 0.6;
+        }
+      } else if (b.state === 'returning') {
+        const tx = ARENA_W * 0.5 + (b.homeX - ARENA_W * 0.5) * breathe + swayX;
+        const ty = b.homeY;
+        const dx = tx - b.x;
+        const dy = ty - b.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 10) {
+          b.x = tx;
+          b.y = ty;
+          b.state = 'formation';
+          b.angle = 0;
+        } else {
+          const step = Math.min(dist, 240 * dt);
+          b.x += (dx / dist) * step;
+          b.y += (dy / dist) * step;
+          b.angle = Math.atan2(dy, dx) - Math.PI * 0.5;
+        }
+      }
+
+      // Collision with player ship / Solar Ward
+      const pl = state.player;
+      if (pl.alive && b.state !== 'entering') {
+        const dx = b.x - pl.x;
+        const dy = b.y - pl.y;
+        if (pl.wardActiveTimer > 0) {
+          if (dx * dx + dy * dy <= 42 * 42) {
+            // Ramming the active Solar Ward destroys the bird!
+            addScore(b.spec.points * 2, b.x, b.y, true, false);
+            audio.playBirdHit(true);
+            audio.playWardDeflect();
+            spawnBurst(b.x, b.y, 12, b.spec.featherColor, 'feather', 50, 200);
+            state.birds.splice(i, 1);
+            continue;
+          }
+        } else if (dx * dx + dy * dy <= 24 * 24) {
+          state.birds.splice(i, 1);
+          damagePlayer();
+        }
+      }
+    }
+
+    // Launch new divers from formation
+    if (readyToDive.length > 0 && divingCount < maxDivers) {
+      state.diveCooldown -= dt;
+      if (state.diveCooldown <= 0) {
+        // Prefer edge/bottom birds
+        readyToDive.sort((a, b) => b.row - a.row);
+        const pickPool = readyToDive.slice(0, Math.min(7, readyToDive.length));
+        const diver = pickPool[Math.floor(Math.random() * pickPool.length)];
+        diver.state = 'diving';
+        diver.diveTime = 0;
+        diver.diveDir = diver.x < ARENA_W * 0.5 ? 1 : -1;
+        diver.vx = diver.diveDir * 85;
+        diver.vy = 90;
+        diver.shotsLeft = diver.spec.shots + (state.cycle >= 3 ? 1 : 0);
+        diver.nextShotTime = 0.4 + Math.random() * 0.35;
+        const baseInterval = isGale ? 0.72 : 1.05;
+        state.diveCooldown = Math.max(0.28, baseInterval - (state.cycle - 1) * 0.12) + Math.random() * 0.45;
+      }
+    }
+  }
+
+  function updateEggs(dt) {
+    const pl = state.player;
+    for (let i = state.eggs.length - 1; i >= 0; i--) {
+      const e = state.eggs[i];
+      e.x += e.vx * dt;
+      if (e.x < 46) {
+        e.x = 46;
+        e.vx = Math.abs(e.vx);
+      } else if (e.x > ARENA_W - 46) {
+        e.x = ARENA_W - 46;
+        e.vx = -Math.abs(e.vx);
+      }
+      e.y = e.baseY + Math.sin(state.time * e.bobFreq + e.phase) * e.bobAmp;
+
+      // Countdown to hatch into a Great Solar Phoenix
+      e.hatchTimer -= dt;
+      if (e.hatchTimer <= 0) {
+        const ph = Ent.createPhoenixFromEgg(e, state.cycle);
+        state.phoenixes.push(ph);
+        audio.playEggHatch();
+        spawnRing(e.x, e.y, 6, 36, '#e6b23e', 0.32);
+        spawnBurst(e.x, e.y, 12, '#fbf5e4', 'shard', 55, 190);
+        spawnBurst(e.x, e.y, 8, '#cf341c', 'feather', 40, 160);
+        state.eggs.splice(i, 1);
+        continue;
+      }
+
+      // Collision with player (rare, if egg drifts low)
+      if (pl.alive) {
+        const dx = e.x - pl.x;
+        const dy = e.y - pl.y;
+        if (pl.wardActiveTimer > 0 && dx * dx + dy * dy <= 42 * 42) {
+          addScore(50, e.x, e.y, true, false);
+          audio.playEggBreak();
+          state.eggs.splice(i, 1);
+        } else if (dx * dx + dy * dy <= 24 * 24) {
+          damagePlayer();
+        }
+      }
+    }
+  }
+
+  function updatePhoenixes(dt) {
+    const pl = state.player;
+    const maxSwoopers = Math.min(3, 1 + Math.floor(state.cycle / 2));
+    let swoopingCount = 0;
+    for (const ph of state.phoenixes) {
+      if (ph.state === 'swooping') swoopingCount++;
+    }
+
+    const bulletSpeed = Math.min(440, 290 + (state.cycle - 1) * 26);
+
+    for (let i = state.phoenixes.length - 1; i >= 0; i--) {
+      const ph = state.phoenixes[i];
+      ph.flapPhase += dt * 7.8;
+      if (ph.hitFlash > 0) ph.hitFlash = Math.max(0, ph.hitFlash - dt);
+
+      // Wing regrowth timers
+      if (!ph.leftWing) {
+        ph.leftRegrow -= dt;
+        if (ph.leftRegrow <= 0) {
+          ph.leftWing = true;
+          ph.leftRegrow = -0.6; // brief golden shimmer
+          audio.playWingRegrow();
+          spawnBurst(ph.x - 28, ph.y, 8, '#f6c84f', 'spark', 30, 120);
+        }
+      } else if (ph.leftRegrow < 0) {
+        ph.leftRegrow = Math.min(0, ph.leftRegrow + dt);
+      }
+
+      if (!ph.rightWing) {
+        ph.rightRegrow -= dt;
+        if (ph.rightRegrow <= 0) {
+          ph.rightWing = true;
+          ph.rightRegrow = -0.6;
+          audio.playWingRegrow();
+          spawnBurst(ph.x + 28, ph.y, 8, '#f6c84f', 'spark', 30, 120);
+        }
+      } else if (ph.rightRegrow < 0) {
+        ph.rightRegrow = Math.min(0, ph.rightRegrow + dt);
+      }
+
+      const wings = (ph.leftWing ? 1 : 0) + (ph.rightWing ? 1 : 0);
+
+      if (wings === 0) {
+        // Both wings sheared: tumbles downward slowly until a wing regrows!
+        ph.state = 'cruising';
+        ph.vx *= 0.94;
+        ph.vy = 118;
+        ph.x += ph.vx * dt;
+        ph.y += ph.vy * dt;
+        ph.angle += dt * 4.2;
+        if (ph.y > ARENA_H - 95) {
+          ph.y = ARENA_H - 95;
+          ph.vy = -60;
+        }
+      } else if (wings === 1) {
+        // One wing missing: slowed & lists/circles toward missing wing, cannot start swoop
+        ph.state = 'cruising';
+        const turnDir = ph.leftWing ? 1 : -1;
+        const speed = 132;
+        const curAng = Math.atan2(ph.vy, ph.vx) + turnDir * 1.45 * dt;
+        ph.vx = Math.cos(curAng) * speed;
+        ph.vy = Math.sin(curAng) * speed;
+        ph.x += ph.vx * dt;
+        ph.y += ph.vy * dt;
+        ph.angle = turnDir * 0.32;
+      } else {
+        // Both wings intact: cruise upper sky or swoop down firing at ship
+        if (ph.state === 'cruising') {
+          ph.retargetTimer -= dt;
+          if (ph.retargetTimer <= 0) {
+            ph.retargetTimer = 1.3 + Math.random() * 1.4;
+            ph.targetX = 96 + Math.random() * (ARENA_W - 192);
+            ph.targetY = 105 + Math.random() * 215;
+          }
+          const dx = ph.targetX - ph.x;
+          const dy = ph.targetY - ph.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          const spd = 165 + (state.cycle - 1) * 18;
+          ph.vx += ((dx / dist) * spd - ph.vx) * Math.min(1, dt * 3.0);
+          ph.vy += ((dy / dist) * spd - ph.vy) * Math.min(1, dt * 3.0);
+          ph.x += ph.vx * dt;
+          ph.y += ph.vy * dt;
+          ph.angle = Math.max(-0.35, Math.min(0.35, ph.vx * 0.0014));
+
+          ph.swoopTimer -= dt;
+          if (ph.swoopTimer <= 0 && swoopingCount < maxSwoopers && pl.alive) {
+            swoopingCount++;
+            ph.state = 'swooping';
+            ph.targetX = Math.max(85, Math.min(ARENA_W - 85, pl.x + (Math.random() - 0.5) * 90));
+            ph.targetY = SHIP_Y - 120;
+            ph.shotsLeft = 2;
+            ph.nextShotTimer = 0.28;
+          }
+        } else if (ph.state === 'swooping') {
+          const dx = ph.targetX - ph.x;
+          const dy = ph.targetY - ph.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          const spd = 295 + (state.cycle - 1) * 24;
+          ph.vx += ((dx / dist) * spd - ph.vx) * Math.min(1, dt * 4.5);
+          ph.vy += ((dy / dist) * spd - ph.vy) * Math.min(1, dt * 4.5);
+          ph.x += ph.vx * dt;
+          ph.y += ph.vy * dt;
+          ph.angle = Math.max(-0.42, Math.min(0.42, ph.vx * 0.0018));
+
+          ph.nextShotTimer -= dt;
+          if (ph.shotsLeft > 0 && ph.nextShotTimer <= 0 && pl.alive) {
+            ph.shotsLeft--;
+            ph.nextShotTimer = 0.34;
+            const sdx = pl.x - ph.x;
+            const sdy = pl.y - ph.y;
+            const slen = Math.hypot(sdx, sdy) || 1;
+            state.enemyShots.push({
+              x: ph.x,
+              y: ph.y + 18,
+              vx: (sdx / slen) * bulletSpeed * 0.72,
+              vy: Math.max(bulletSpeed * 0.76, (sdy / slen) * bulletSpeed),
+              big: true
+            });
+          }
+
+          if (dist < 42 || ph.y > SHIP_Y - 110) {
+            ph.state = 'cruising';
+            ph.targetY = 125 + Math.random() * 140;
+            ph.targetX = 110 + Math.random() * (ARENA_W - 220);
+            ph.swoopTimer = Math.max(1.8, 3.2 - (state.cycle - 1) * 0.25) + Math.random() * 1.8;
+          }
+        }
+      }
+
+      // Soft arena walls
+      if (ph.x < 64) { ph.x = 64; ph.vx = Math.abs(ph.vx); }
+      if (ph.x > ARENA_W - 64) { ph.x = ARENA_W - 64; ph.vx = -Math.abs(ph.vx); }
+      if (ph.y < 82) { ph.y = 82; ph.vy = Math.abs(ph.vy); }
+      if (ph.y > ARENA_H - 95) { ph.y = ARENA_H - 95; ph.vy = -Math.abs(ph.vy); }
+
+      // Player collision
+      if (pl.alive) {
+        const dx = ph.x - pl.x;
+        const dy = ph.y - pl.y;
+        if (pl.wardActiveTimer > 0 && dx * dx + dy * dy <= 44 * 44) {
+          // Ward bounces the great bird back safely
+          ph.vy = -210;
+          audio.playWardDeflect();
+          spawnBurst((ph.x + pl.x) * 0.5, (ph.y + pl.y) * 0.5, 8, '#f6c952', 'spark', 50, 160);
+        } else if (dx * dx + dy * dy <= 28 * 28) {
+          damagePlayer();
+        }
+      }
+    }
+  }
+
+  function updateBoss(dt) {
+    const boss = state.boss;
+    if (!boss) return;
+
+    if (boss.coreHitFlash > 0) boss.coreHitFlash = Math.max(0, boss.coreHitFlash - dt);
+
+    if (boss.dying) {
+      boss.dyingTimer -= dt;
+      boss.explosionTick -= dt;
+      if (boss.explosionTick <= 0) {
+        boss.explosionTick = 0.14;
+        const rx = boss.x + (Math.random() - 0.5) * boss.width * 0.85;
+        const ry = boss.y + (Math.random() - 0.5) * 110;
+        addShake(7, 0.2);
+        spawnRing(rx, ry, 8, 56, '#cf341c', 0.38);
+        spawnBurst(rx, ry, 14, '#e5ae3c', 'spark', 60, 240);
+        spawnBurst(rx, ry, 8, '#1e3e68', 'shard', 50, 210);
+      }
+      if (boss.dyingTimer <= 0) {
+        state.boss = null;
+      }
+      return;
+    }
+
+    if (boss.entering) {
+      boss.y += 110 * dt;
+      if (boss.y >= boss.targetStartY) {
+        boss.y = boss.targetStartY;
+        boss.entering = false;
+      }
+      return;
+    }
+
+    // Sway side to side & descend slowly toward the ship!
+    boss.swayPhase += dt * 0.65;
+    boss.x = ARENA_W * 0.5 + Math.sin(boss.swayPhase) * boss.swayAmp;
+    boss.y = Math.min(boss.maxY, boss.y + boss.descentSpeed * dt);
+
+    // Advance Layer 2 revolving bronze shield conveyor belt
+    boss.beltOffset = (boss.beltOffset + boss.beltSpeed * dt) % boss.beltWidth;
+    for (let i = 0; i < boss.belt.length; i++) {
+      const seg = boss.belt[i];
+      if (!seg.alive) {
+        seg.regrowTimer -= dt;
+        if (seg.regrowTimer <= 0) {
+          seg.alive = true;
+        }
+      }
+    }
+
+    // Twin Dragon Lantern Turrets fire aimed ember shots
+    const pl = state.player;
+    const bulletSpeed = Math.min(430, 275 + (state.cycle - 1) * 24);
+    for (const tur of boss.turrets) {
+      tur.cooldown -= dt;
+      if (tur.cooldown <= 0 && pl.alive) {
+        tur.cooldown = Math.max(1.15, 2.05 - (state.cycle - 1) * 0.16) + Math.random() * 0.7;
+        const wx = boss.x + tur.x;
+        const wy = boss.y + tur.y;
+        const dx = pl.x - wx;
+        const dy = pl.y - wy;
+        const len = Math.hypot(dx, dy) || 1;
+        state.enemyShots.push({
+          x: wx,
+          y: wy + 8,
+          vx: (dx / len) * bulletSpeed * 0.72,
+          vy: Math.max(bulletSpeed * 0.72, (dy / len) * bulletSpeed),
+          big: true
+        });
+      }
+    }
+
+    // Launch small escort birds from left and right alcoves while player attacks the Sun-Ark
+    const maxEscorts = Math.min(6, 3 + (state.cycle - 1));
+    boss.escortTimer -= dt;
+    if (boss.escortTimer <= 0 && state.birds.length < maxEscorts) {
+      boss.escortTimer = Math.max(1.8, 3.1 - (state.cycle - 1) * 0.25);
+      const side = Math.random() < 0.5 ? -1 : 1;
+      const bayX = boss.x + side * (boss.width * 0.5 - 64);
+      const bayY = boss.y + 22;
+      state.birds.push(Ent.createEscortBird(bayX, bayY, side, state.cycle));
+    }
+
+    // Check if the descending Sun-Ark reaches player ship altitude
+    if (pl.alive && boss.y + 92 >= pl.y - 18 && Math.abs(pl.x - boss.x) < boss.width * 0.48) {
+      damagePlayer();
+    }
+  }
+
+  function updatePowerups(dt) {
+    const pl = state.player;
+    for (let i = state.powerups.length - 1; i >= 0; i--) {
+      const p = state.powerups[i];
+      p.y += p.vy * dt;
+      if (p.y > ARENA_H + 30) {
+        state.powerups.splice(i, 1);
+        continue;
+      }
+      if (pl.alive) {
+        const dx = p.x - pl.x;
+        const dy = p.y - pl.y;
+        if (dx * dx + dy * dy <= 34 * 34) {
+          pl.twinTimer = 11.0;
+          addScore(100, p.x, p.y, false, true);
+          audio.playPowerup();
+          spawnRing(p.x, p.y, 8, 38, '#e9b949', 0.34);
+          state.powerups.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  function updateParticlesAndPopups(dt) {
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const pt = state.particles[i];
+      pt.life -= dt;
+      if (pt.life <= 0) {
+        state.particles.splice(i, 1);
+        continue;
+      }
+      pt.vy += pt.gravity * dt;
+      if (pt.kind === 'feather') {
+        pt.vx *= 0.97;
+        pt.x += Math.sin(state.time * 9 + pt.rot) * 26 * dt;
+      }
+      pt.x += pt.vx * dt;
+      pt.y += pt.vy * dt;
+      pt.rot += pt.vrot * dt;
+    }
+
+    for (let i = state.popups.length - 1; i >= 0; i--) {
+      const pop = state.popups[i];
+      pop.life -= dt;
+      pop.y -= 34 * dt;
+      if (pop.life <= 0) state.popups.splice(i, 1);
+    }
+  }
+
+  function checkStageClear(dt) {
+    const enemiesLeft = state.birds.length + state.eggs.length + state.phoenixes.length + (state.boss ? 1 : 0);
+    if (enemiesLeft === 0) {
+      if (state.stageClearTimer === 0) {
+        // Award stage clear bonus
+        const bonus = 500 * state.stageNum;
+        addScore(bonus, ARENA_W * 0.5, ARENA_H * 0.44, false, true);
+        if (state.stageInCycle !== 4) {
+          audio.playStageClear(0);
+        }
+      }
+      state.stageClearTimer += dt;
+      if (state.stageClearTimer >= 1.55) {
+        setupStage(state.stageNum + 1);
+      }
+    }
+  }
+
+  // --- Main Render ---
+  function render() {
+    ctx.save();
+    ctx.scale(view.dpr, view.dpr);
+
+    const bgStage = state.mode === 'title' ? 0 : state.stageInCycle;
+    Art.drawBackdrop(ctx, view.w, view.h, bgStage, state.time, state.scrollBoost, view.arenaRect);
+
+    // Arena coordinate transform + screen shake
+    ctx.save();
+    let sx = 0;
+    let sy = 0;
+    if (state.shakeTime > 0 && state.mode === 'playing') {
+      sx = (Math.random() - 0.5) * 2 * state.shakeMag;
+      sy = (Math.random() - 0.5) * 2 * state.shakeMag;
+    }
+    ctx.translate(view.offsetX + sx, view.offsetY + sy);
+    ctx.scale(view.scale, view.scale);
+
+    if (state.mode === 'title') {
+      for (const b of state.titleBirds) {
+        if (b.state === 'entering' && b.entryDelay > 0) continue;
+        Art.drawSmallBird(ctx, b, state.time);
+      }
+      Art.drawPlayerShip(ctx, ARENA_W * 0.5, SHIP_Y, 0, false, true, 0, 0, state.time, false);
+    } else {
+      // Boss behind birds/shots
+      if (state.boss) {
+        Art.drawSunArk(ctx, state.boss, state.time);
+      }
+
+      // Eggs
+      for (const e of state.eggs) {
+        Art.drawEgg(ctx, e, state.time);
+      }
+
+      // Great Solar Phoenixes
+      for (const ph of state.phoenixes) {
+        Art.drawPhoenix(ctx, ph, state.time);
+      }
+
+      // Small birds
+      for (const b of state.birds) {
+        if (b.state === 'entering' && b.entryDelay > 0) continue;
+        Art.drawSmallBird(ctx, b, state.time);
+      }
+
+      // Power-ups
+      for (const p of state.powerups) {
+        Art.drawPowerup(ctx, p, state.time);
+      }
+
+      // Player shots
+      for (const s of state.playerShots) {
+        Art.drawPlayerShot(ctx, s);
+      }
+
+      // Enemy shots
+      for (const b of state.enemyShots) {
+        Art.drawEnemyShot(ctx, b, state.time);
+      }
+
+      // Player ship
+      const pl = state.player;
+      if (pl.alive) {
+        const wardActive = pl.wardActiveTimer > 0;
+        const wardReady = !wardActive && pl.wardCooldownTimer <= 0;
+        const wardPulse = wardActive ? pl.wardActiveTimer / WARD_DURATION : 0;
+        Art.drawPlayerShip(ctx, pl.x, pl.y, pl.tilt, wardActive, wardReady, wardPulse, pl.invulnTimer, state.time, pl.twinTimer > 0);
+      }
+
+      // Particles & floating score popups
+      Art.drawParticles(ctx, state.particles);
+      Art.drawPopups(ctx, state.popups);
+    }
+
+    ctx.restore();
+    ctx.restore();
+  }
+
+  // --- Frame Loop ---
+  let lastTs = 0;
+  function frame(ts) {
+    if (!lastTs) lastTs = ts;
+    const dt = Math.min(0.05, Math.max(0.001, (ts - lastTs) / 1000));
+    lastTs = ts;
+
+    if (state.mode === 'title') {
+      state.time += dt;
+      updateTitleFlock(dt);
+    } else if (state.mode === 'playing') {
+      updateGame(dt);
+    }
+
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  // --- Keyboard, Mouse & Touch Controls ---
+  function onKeyDown(e) {
+    const code = e.code;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(code)) {
+      e.preventDefault();
+    }
+
+    if (code === 'KeyM') {
+      audio.init();
+      audio.toggleMute();
+      syncMuteButtons();
+      return;
+    }
+
+    if (code === 'KeyP' || code === 'Escape') {
+      if (state.mode === 'playing' || state.mode === 'paused') {
+        togglePause();
+      }
+      return;
+    }
+
+    if (state.mode === 'title' && (code === 'Enter' || code === 'Space')) {
+      startGame(1);
+      return;
+    }
+
+    if (state.mode === 'gameover' && (code === 'Enter' || code === 'Space')) {
+      startGame(1);
+      return;
+    }
+
+    if (code === 'ArrowLeft' || code === 'KeyA') input.left = true;
+    if (code === 'ArrowRight' || code === 'KeyD') input.right = true;
+    if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW' || code === 'KeyZ') {
+      input.fire = true;
+    }
+    if (code === 'ArrowDown' || code === 'KeyS' || code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyX') {
+      if (state.mode === 'playing') input.wardQueued = true;
+    }
+  }
+
+  function onKeyUp(e) {
+    const code = e.code;
+    if (code === 'ArrowLeft' || code === 'KeyA') input.left = false;
+    if (code === 'ArrowRight' || code === 'KeyD') input.right = false;
+    if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW' || code === 'KeyZ') {
+      input.fire = false;
+    }
+  }
+
+  // Touch device detection & dedicated on-screen touch pads
+  function enableTouchUI() {
+    if (!document.body.classList.contains('touch-active')) {
+      document.body.classList.add('touch-active');
+      resize();
+    }
+  }
+
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    enableTouchUI();
+  }
+  window.addEventListener('touchstart', enableTouchUI, { passive: true, once: true });
+
+  function bindTouchButton(id, onPress, onRelease) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const press = (e) => {
+      e.preventDefault();
+      audio.init();
+      el.classList.add('pressed');
+      onPress();
+    };
+    const release = (e) => {
+      e.preventDefault();
+      el.classList.remove('pressed');
+      if (onRelease) onRelease();
+    };
+    el.addEventListener('pointerdown', press);
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+    el.addEventListener('pointerleave', release);
+  }
+
+  bindTouchButton('touch-left', () => { input.left = true; }, () => { input.left = false; });
+  bindTouchButton('touch-right', () => { input.right = true; }, () => { input.right = false; });
+  bindTouchButton('touch-fire', () => { input.fire = true; }, () => { input.fire = false; });
+  bindTouchButton('touch-ward', () => { input.wardQueued = true; }, null);
+
+  // Optional direct drag on canvas for mouse/touch play
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state.mode !== 'playing') return;
+    audio.init();
+    if (e.button === 2) {
+      input.wardQueued = true;
+      return;
+    }
+    input.pointerActive = true;
+    input.pointerArenaX = screenToArenaX(e.clientX);
+    input.fire = true;
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!input.pointerActive || state.mode !== 'playing') return;
+    input.pointerArenaX = screenToArenaX(e.clientX);
+  });
+
+  function stopPointer() {
+    if (input.pointerActive) {
+      input.pointerActive = false;
+      input.fire = false;
+    }
+  }
+  window.addEventListener('pointerup', stopPointer);
+  window.addEventListener('pointercancel', stopPointer);
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // Buttons
+  btnStart.addEventListener('click', () => startGame(1));
+  btnRestart.addEventListener('click', () => startGame(1));
+  btnResume.addEventListener('click', () => togglePause(false));
+  btnPauseRestart.addEventListener('click', () => startGame(1));
+  btnPauseTitle.addEventListener('click', returnToTitle);
+  btnGoTitle.addEventListener('click', returnToTitle);
+  btnPause.addEventListener('click', () => togglePause());
+
+  const handleMuteClick = () => {
+    audio.init();
+    audio.toggleMute();
+    syncMuteButtons();
+  };
+  btnMute.addEventListener('click', handleMuteClick);
+  btnTitleMute.addEventListener('click', handleMuteClick);
+
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+  window.addEventListener('resize', resize);
+
+  // Auto-pause when tab loses visibility or window blurs
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.mode === 'playing') togglePause(true);
+  });
+  window.addEventListener('blur', () => {
+    input.left = false;
+    input.right = false;
+    input.fire = false;
+    input.pointerActive = false;
+    if (state.mode === 'playing') togglePause(true);
+  });
+
+  // Initialize
+  resize();
+  syncMuteButtons();
+  titleBestEl.textContent = fmtScore(state.best);
+  state.titleBirds = Ent.createFlock('flock1', 1);
+
+  // Query param ?stage=N for direct stage inspection (does not affect best score)
+  const params = new URLSearchParams(window.location.search);
+  const queryStage = parseInt(params.get('stage') || '', 10);
+  if (Number.isFinite(queryStage) && queryStage >= 1 && queryStage <= 20) {
+    startGame(queryStage);
+  }
+
+  // Inspection hook for automated verification
+  global.__suncrest = {
+    version: VERSION,
+    start: (stageNum) => startGame(stageNum || 1),
+    togglePause,
+    activateWard,
+    damageBossCore,
+    hatchAllEggs: () => {
+      for (const e of state.eggs) e.hatchTimer = 0.01;
+    },
+    setPlayerX: (x) => {
+      state.player.x = Math.max(42, Math.min(ARENA_W - 42, x));
+    },
+    setScore: (n) => {
+      state.score = n;
+      updateHud();
+    },
+    getState: () => ({
+      mode: state.mode,
+      score: state.score,
+      best: state.best,
+      lives: state.lives,
+      stageNum: state.stageNum,
+      cycle: state.cycle,
+      stageInCycle: state.stageInCycle,
+      player: { ...state.player },
+      birdCount: state.birds.length,
+      eggCount: state.eggs.length,
+      phoenixCount: state.phoenixes.length,
+      phoenixes: state.phoenixes.map((p) => ({
+        x: p.x, y: p.y, leftWing: p.leftWing, rightWing: p.rightWing,
+        leftRegrow: p.leftRegrow, rightRegrow: p.rightRegrow
+      })),
+      boss: state.boss ? {
+        x: state.boss.x,
+        y: state.boss.y,
+        entering: state.boss.entering,
+        dying: state.boss.dying,
+        coreHp: state.boss.coreHp,
+        coreMaxHp: state.boss.coreMaxHp,
+        tilesAlive: state.boss.tiles.filter((t) => t.alive).length,
+        tilesTotal: state.boss.tiles.length,
+        beltAlive: state.boss.belt.filter((s) => s.alive).length,
+        beltTotal: state.boss.belt.length
+      } : null,
+      playerShots: state.playerShots.length,
+      enemyShots: state.enemyShots.length,
+      muted: audio.muted
+    }),
+    rawState: state
+  };
+
+  requestAnimationFrame(frame);
+})(window);
+
+</script>
+</body>
+</html>
