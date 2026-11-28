@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#172643">
+<title>Sunspindle</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="style.css">
+<script src="flight.js" defer></script>
+<script src="print.js" defer></script>
+<script src="sound.js" defer></script>
+<script src="cabinet.js" defer></script>
+</head>
+<body>
+<main>
+<header><div class="brand"><span class="emblem" aria-hidden="true">✹</span> SUNSPINDLE</div><div class="switches"><button id="mute" aria-pressed="false">Sound on</button><button id="pause" disabled>Pause</button></div></header>
+<div class="cabinet">
+<div class="viewport">
+<canvas id="field" width="760" height="640" aria-label="Sunspindle arcade playfield"></canvas>
+<section class="overlay" id="cover"><div class="poster">
+<div id="edition">ARCADE SHOOTER &nbsp; / &nbsp; V1.0.0</div>
+<h1 id="heading">Sunspindle</h1><p id="copy">Break the flock. Pierce the sun.</p>
+<button id="launch">Launch ship <span aria-hidden="true">↗</span></button><small id="shortcut">or press Enter</small>
+</div></section>
+</div>
+<aside>
+<div class="score"><span class="label">Score</span><strong id="score">000000</strong><div class="best">Best <b id="best">000000</b></div></div>
+<div class="flight"><div class="label">Flight path <b id="cycle">Cycle 01</b></div><ol id="route"><li>First flight</li><li>Crosswind</li><li>Hatchery</li><li>Double brood</li><li>Solar press</li></ol><p id="hint"></p></div>
+<div class="systems"><div><span class="label">Ships</span><b id="ships" aria-label="3 ships">▲ ▲ ▲</b></div><div><span class="label">Shield</span><b id="shield">Ready</b><meter id="charge" min="0" max="1" value="1">Ready</meter></div></div>
+</aside></div>
+<div class="touch" aria-label="Flight controls"><button data-key="left" aria-label="Move left">◀</button><button data-key="right" aria-label="Move right">▶</button><button data-key="fire">Fire</button><button data-key="shield">Shield</button></div>
+<footer><div><kbd>←</kbd><kbd>→</kbd> Move</div><div><kbd>Space</kbd> Fire</div><div><kbd>Shift</kbd> Shield</div><div><kbd>P</kbd> Pause</div><div><kbd>M</kbd> Sound</div></footer>
+<p id="status" class="sr" role="status"></p>
+</main>
+</body></html>

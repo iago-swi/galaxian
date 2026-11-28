@@ -1,6 +1,6 @@
 # Versions and release notes
 
-This repository holds two games so far, and more will follow. Each game has its own
+This repository holds three games so far, and more will follow. Each game has its own
 version number, its own changelog and its own releases, so work on one game never
 touches the numbering of another.
 
@@ -8,6 +8,7 @@ touches the numbering of another.
 | --- | --- | --- | --- |
 | Nightflock | `Claude/` | `nightflock-v1.0.0` | [Claude/CHANGELOG.md](Claude/CHANGELOG.md) |
 | Suncrest | `Gemini/` | `suncrest-v1.0.0` | [Gemini/CHANGELOG.md](Gemini/CHANGELOG.md) |
+| Sunspindle | `ChatGPT/` | `sunspindle-v1.0.0` | [ChatGPT/CHANGELOG.md](ChatGPT/CHANGELOG.md) |
 
 A game added later gets its own row, its own folder and its own tag prefix. All
 releases are listed on the
