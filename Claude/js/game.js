@@ -22,11 +22,11 @@
 
   /* ---------- definitions ---------- */
   const TYPES = {
-    M: { spr: 'swallow', size: 72, r: 15, hp: 1, pts: 30, col: [0.25, 1, 1], face: 1, flap: 13, speed: 235, turn: 2.2, weave: 1.7, shots: 1 },
-    R: { spr: 'gull', size: 72, r: 17, hp: 1, pts: 50, col: [1, 0.3, 0.85], face: 1, flap: 8, speed: 295, turn: 3.0, weave: 0.8, shots: 1 },
-    L: { spr: 'falcon', size: 72, r: 15, hp: 1, pts: 80, col: [1, 0.68, 0.2], face: 1, flap: 10, speed: 360, turn: 1.6, weave: 0.25, shots: 2 },
+    M: { spr: 'swallow', size: 72, r: 15, hp: 1, pts: 30, col: [0.30, 0.45, 0.64], face: 1, flap: 13, speed: 235, turn: 2.2, weave: 1.7, shots: 1 },
+    R: { spr: 'gull', size: 72, r: 17, hp: 1, pts: 50, col: [0.92, 0.93, 0.94], face: 1, flap: 8, speed: 295, turn: 3.0, weave: 0.8, shots: 1 },
+    L: { spr: 'falcon', size: 72, r: 15, hp: 1, pts: 80, col: [0.68, 0.52, 0.35], face: 1, flap: 10, speed: 360, turn: 1.6, weave: 0.25, shots: 2 },
     // great raven: hatched from an egg. Only a hit on the body counts; a wing is shot off and grows back.
-    G: { spr: 'raven', size: 158, r: 18, wingR: 24, wingX: 37, hp: 1, pts: 200, col: [0.3, 1, 0.6], face: 1, flap: 6.5, speed: 215, great: true },
+    G: { spr: 'raven', size: 158, r: 18, wingR: 24, wingX: 37, hp: 1, pts: 200, col: [0.27, 0.31, 0.46], face: 1, flap: 6.5, speed: 215, great: true },
   };
   const FLOCKS = [
     ['..LLLLLL..', '.RRRRRRRR.', 'MMMMMMMMMM', 'MMMMMMMMMM'],
@@ -40,8 +40,8 @@
   const STAGES = ['flock', 'brood', 'storm', 'boss'];
   const STAGE_LINE = { flock: 'THE FLOCK IS GATHERING', brood: 'THE EGGS ARE STIRRING', storm: 'THEY COME AS A STORM', boss: 'THE AERIE DESCENDS' };
   const POWS = {
-    twin: { spr: 'pw_twin', col: [0.3, 1, 1.2] },
-    rapid: { spr: 'pw_rapid', col: [1.3, 0.8, 0.2] },
+    twin: { spr: 'pw_twin', col: [0.66, 0.84, 0.94] },
+    rapid: { spr: 'pw_rapid', col: [0.98, 0.78, 0.42] },
   };
   const SH_T = 1.8, SH_CD = 5, WING_T = 3.2;            // shield time, shield recharge, wing regrowth
   const BW = 13, BH = 5, PW = 21, PH = 13, PY0 = 62, CORE_Y = 22;  // the Aerie's armour grid and eye
@@ -72,6 +72,7 @@
       if (pl[i] <= 0) continue;
       pl[i] -= dt;
       const k = Math.max(0, 1 - pd[i] * dt);
+      if (pk[i] === 2) pvy[i] += 110 * dt;
       pvx[i] *= k; pvy[i] *= k; px[i] += pvx[i] * dt; py[i] += pvy[i] * dt;
     }
   }
@@ -80,7 +81,9 @@
     for (let i = 0; i < PN; i++) {
       if (pl[i] <= 0) continue;
       const t = pl[i] / pm[i];
-      if (pk[i] === 1) { // streak, stretched along velocity
+      if (pk[i] === 2) { // feather
+        Q(S.feather, px[i], py[i], ps[i] * 0.6, ps[i], i * 2.1 + (pm[i] - pl[i]) * ((i & 1) ? 5 : -5), pr[i], pg[i], pb[i], Math.min(1, t * 2.2), 0);
+      } else if (pk[i] === 1) { // streak, stretched along velocity
         const vx = pvx[i], vy = pvy[i], sp = Math.sqrt(vx * vx + vy * vy);
         const len = clamp(sp * 0.07, ps[i], 70), a = t * 1.5;
         Q(gl, px[i], py[i], len * 2, ps[i], Math.atan2(vy, vx), pr[i] * a, pg[i] * a, pb[i] * a, 1, 1);
@@ -93,21 +96,34 @@
   function sparks(x, y, n, r, g, b, v) {
     for (let k = 0; k < n; k++) { const a = rand(0, TAU), s = rand(0.25, 1) * v; spawnP(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(0.2, 0.5), 6, r, g, b, 3, 1); }
   }
-  function explode(x, y, col, k) {
-    const r = col[0], g = col[1], b = col[2];
-    fxs.push({ kind: 0, x, y, t: 0, life: 0.3, size: 170 * k, r, g, b });
-    fxs.push({ kind: 1, x, y, t: 0, life: 0.5, size: 170 * k, r, g, b });
-    fxs.push({ kind: 2, x, y, t: 0, life: 0.24, size: 420 * k, r, g, b });
-    const n = (28 * k) | 0, sq = Math.sqrt(k);
-    for (let i = 0; i < n; i++) {
-      const a = rand(0, TAU), v = rand(70, 560) * sq, w = Math.random() < 0.35;
-      spawnP(x, y, Math.cos(a) * v, Math.sin(a) * v, rand(0.35, 0.95), rand(5, 9),
-        w ? 1.7 : r * 1.5 + 0.15, w ? 1.7 : g * 1.5 + 0.15, w ? 1.7 : b * 1.5 + 0.15, 3.2, 1);
+  const FIRE = [1.3, 0.75, 0.3];
+  function feathers(x, y, n, col, v) {
+    for (let k = 0; k < n; k++) {
+      const a = rand(0, TAU), s = rand(0.2, 1) * v, m = rand(0.85, 1.12);
+      spawnP(x + rand(-6, 6), y + rand(-6, 6), Math.cos(a) * s, Math.sin(a) * s - 40, rand(0.8, 1.6), rand(12, 19), col[0] * m, col[1] * m, col[2] * m, 1.8, 2);
     }
-    for (let i = 0; i < 10 * k; i++)
-      spawnP(x + rand(-12, 12), y + rand(-12, 12), rand(-45, 45), rand(-45, 45), rand(0.7, 1.5), rand(9, 18), r, g, b, 1, 0);
-    GFX.shock(x, y, 0.011 * k, 520, 0.7);
-    G.shake = Math.min(20, G.shake + 4 * k);
+  }
+  // a bird bursts into feathers; a machine (fire = true) into sparks and embers
+  function explode(x, y, col, k, fire) {
+    const sq = Math.sqrt(k);
+    fxs.push({ kind: 0, x, y, t: 0, life: 0.26, size: 120 * k, r: fire ? 0.9 : 0.3, g: fire ? 0.5 : 0.3, b: fire ? 0.2 : 0.32 });
+    fxs.push({ kind: 1, x, y, t: 0, life: 0.45, size: 150 * k, r: fire ? 0.6 : 0.34, g: fire ? 0.4 : 0.32, b: fire ? 0.25 : 0.3 });
+    if (fire) {
+      for (let i = 0; i < 24 * k; i++) {
+        const a = rand(0, TAU), v = rand(70, 520) * sq;
+        spawnP(x, y, Math.cos(a) * v, Math.sin(a) * v, rand(0.3, 0.85), rand(5, 8), 1.3, 0.75 * rand(0.7, 1.2), 0.3, 3.2, 1);
+      }
+      for (let i = 0; i < 8 * k; i++)
+        spawnP(x + rand(-12, 12), y + rand(-12, 12), rand(-40, 40), rand(-60, 10), rand(0.6, 1.3), rand(10, 18), 0.5, 0.26, 0.1, 1, 0);
+    } else {
+      feathers(x, y, (11 * k) | 0, col, 260 * sq);
+      for (let i = 0; i < 5 * k; i++) {
+        const a = rand(0, TAU), v = rand(60, 360) * sq;
+        spawnP(x, y, Math.cos(a) * v, Math.sin(a) * v, rand(0.25, 0.6), 5, 0.7, 0.66, 0.56, 3.2, 1);
+      }
+    }
+    GFX.shock(x, y, 0.006 * k, 520, 0.6);
+    G.shake = Math.min(20, G.shake + 3.5 * k);
   }
 
   /* ---------- stages ---------- */
@@ -277,7 +293,7 @@
         e.tr -= dt;
         if (e.tr <= 0) {
           e.tr = T.great ? 0.035 : 0.022;
-          spawnP(e.x + rand(-3, 3), e.y + rand(-3, 3), 0, 0, 0.4, T.great ? 26 : T.size * 0.27, T.col[0] * 0.7, T.col[1] * 0.7, T.col[2] * 0.7, 0, 0);
+          spawnP(e.x + rand(-3, 3), e.y + rand(-3, 3), 0, 0, 0.3, T.great ? 20 : 13, 0.09, 0.09, 0.1, 0, 0);
         }
       }
     }
@@ -313,8 +329,8 @@
       if (g.hatch <= 0) { // a great raven breaks out
         eggs.splice(i, 1);
         enemies.push(mk(TYPES.G, { x: g.x, y: g.y, vx: rand(-60, 60), vy: -130, state: 'great', tx: g.x, ty: Math.max(110, g.y - 90), tT: 0.7, swT: rand(1.5, 4) }));
-        fxs.push({ kind: 1, x: g.x, y: g.y, t: 0, life: 0.45, size: 150, r: 0.3, g: 1, b: 0.6 });
-        sparks(g.x, g.y, 22, 0.6, 1.6, 1.0, 380);
+        fxs.push({ kind: 1, x: g.x, y: g.y, t: 0, life: 0.45, size: 150, r: 0.32, g: 0.32, b: 0.3 });
+        feathers(g.x, g.y, 14, [0.78, 0.88, 0.82], 300); // bits of shell
         SFX.hatch();
       }
     }
@@ -328,13 +344,13 @@
       b.dying -= dt; b.exT -= dt; b.y += 14 * dt;
       if (b.exT <= 0) {
         b.exT = 0.075;
-        const lx = rand(-310, 310), col = [[1.2, 0.3, 1], [0.3, 1, 1.2], [1.4, 1.2, 1]][(Math.random() * 3) | 0];
-        explode(b.x + lx, b.y + rand(-70, 60) * (1 - Math.abs(lx) / 400), col, rand(0.7, 1.5));
+        const lx = rand(-310, 310);
+        explode(b.x + lx, b.y + rand(-70, 60) * (1 - Math.abs(lx) / 400), FIRE, rand(0.7, 1.5), true);
         if (Math.random() < 0.4) SFX.boom(1.2);
       }
       if (b.dying <= 0) {
-        for (let k = 0; k < 3; k++) explode(b.x + (k - 1) * 150, b.y, [1.4, 0.6, 1.2], 3);
-        GFX.shock(b.x, b.y, 0.06, 800, 1.3); G.flash = 0.8; G.shake = 30; G.aberr = 0.02; G.ts = 0.25;
+        for (let k = 0; k < 3; k++) explode(b.x + (k - 1) * 150, b.y, FIRE, 3, true);
+        GFX.shock(b.x, b.y, 0.05, 800, 1.3); G.flash = 0.5; G.shake = 30; G.aberr = 0.008; G.ts = 0.25;
         const pts = 3000 * (G.cycle + 1);
         addScore(pts); pops.push({ x: b.x, y: b.y, s: String(pts), t: -0.6, col: [1, 0.6, 1], sc: 2.4 });
         SFX.die(); boss = null;
@@ -378,7 +394,7 @@
         const side = Math.random() < 0.5 ? -1 : 1;
         enemies.push(mk(Math.random() < 0.35 ? TYPES.R : TYPES.M, {
           x: b.x + side * 285, y: b.y + 24, side, state: 'return', anchor: true, sx: side * rand(170, 300), sy: rand(85, 130) }));
-        sparks(b.x + side * 285, b.y + 26, 8, 0.4, 1.5, 0.8, 200);
+        sparks(b.x + side * 285, b.y + 26, 6, 0.6, 0.55, 0.45, 160);
       }
     }
   }
@@ -395,7 +411,7 @@
         const pyy = PY0 + r * PH;
         if (ly <= pyy + PH / 2 && lyPrev >= pyy - PH / 2) {
           b.plates[r * BW + c] = 0; addScore(10);
-          sparks(b.x + (c - mid) * PW, b.y + pyy, 9, 1.6, 1.0, 0.5, 300);
+          sparks(b.x + (c - mid) * PW, b.y + pyy, 7, 1.1, 0.75, 0.4, 280);
           SFX.hit(); return true;
         }
       }
@@ -404,15 +420,15 @@
       if (ly > CORE_Y + 24) return false;
       if (b.open > 0.55) {
         b.hp--; b.flash = 1; addScore(100); G.shake = Math.max(G.shake, 6); G.aberr = Math.max(G.aberr, 0.004);
-        sparks(bu.x, b.y + CORE_Y + 20, 18, 1.8, 0.5, 0.8, 420);
-        fxs.push({ kind: 1, x: b.x, y: b.y + CORE_Y, t: 0, life: 0.35, size: 150, r: 1.2, g: 0.3, b: 0.6 });
+        sparks(bu.x, b.y + CORE_Y + 20, 14, 1.3, 0.75, 0.35, 400);
+        fxs.push({ kind: 1, x: b.x, y: b.y + CORE_Y, t: 0, life: 0.35, size: 150, r: 0.6, g: 0.4, b: 0.25 });
         SFX.hit(); SFX.boom(0.6);
         if (b.hp <= 0) killBoss();
-      } else { sparks(bu.x, b.y + CORE_Y + 24, 6, 1.2, 1.2, 1.5, 220); SFX.clang(); }
+      } else { sparks(bu.x, b.y + CORE_Y + 24, 5, 0.8, 0.8, 0.8, 200); SFX.clang(); }
       return true;
     }
     const yb = a < 140 ? 52 - (a - 30) / 110 * 4 : a < 300 ? 48 - (a - 140) / 160 * 14 : 34 - (a - 300) / 30 * 24;
-    if (ly <= yb) { sparks(bu.x, b.y + yb, 4, 0.8, 0.6, 1.4, 160); return true; }
+    if (ly <= yb) { sparks(bu.x, b.y + yb, 3, 0.7, 0.68, 0.6, 150); return true; }
     return false;
   }
   function killBoss() {
@@ -439,29 +455,29 @@
     pops.push({ x: e.x, y: e.y, s: String(pts), t: 0, col: T.col, sc: diving ? 1.25 : 1 });
     explode(e.x, e.y, T.col, T.great ? 1.9 : 1);
     SFX.boom(T.great ? 1.5 : 1);
-    G.aberr = Math.max(G.aberr, T.great ? 0.006 : 0.003);
+    G.aberr = Math.max(G.aberr, T.great ? 0.003 : 0.0015);
     if ((T.great && Math.random() < 0.35) || (diving && !T.great && Math.random() < 0.05)) {
       const kinds = Object.keys(POWS);
       pows.push({ x: e.x, y: e.y, kind: kinds[(Math.random() * kinds.length) | 0], t: 0 });
     }
   }
   function shieldFlash(x, y) {
-    sparks(x, y, 8, 0.5, 1.6, 1.2, 260);
-    fxs.push({ kind: 1, x: P.x, y: P.y, t: 0, life: 0.3, size: 150, r: 0.4, g: 1.2, b: 0.9 });
+    sparks(x, y, 6, 0.8, 0.85, 0.9, 240);
+    fxs.push({ kind: 1, x: P.x, y: P.y, t: 0, life: 0.3, size: 150, r: 0.5, g: 0.55, b: 0.6 });
     SFX.shieldHit();
   }
   function hurtPlayer() {
     if (P.inv > 0 || P.sh > 0 || !P.alive) return;
     P.alive = false; P.resp = 1.9; P.twin = P.rapid = 0; P.sh = 0; P.shCool = 0; G.combo = 0; G.comboT = 0;
     G.lives--;
-    explode(P.x, P.y, [0.4, 0.9, 1.3], 2.6);
-    explode(P.x + rand(-20, 20), P.y + rand(-10, 10), [1.2, 0.5, 1], 1.4);
-    for (let i = 0; i < 70; i++) {
+    explode(P.x, P.y, FIRE, 2.6, true);
+    explode(P.x + rand(-20, 20), P.y + rand(-10, 10), FIRE, 1.4, true);
+    for (let i = 0; i < 36; i++) {
       const a = rand(0, TAU), v = rand(100, 900);
-      spawnP(P.x, P.y, Math.cos(a) * v, Math.sin(a) * v, rand(0.6, 1.6), rand(6, 11), 1.2, 1.6, 2, 2.4, 1);
+      spawnP(P.x, P.y, Math.cos(a) * v, Math.sin(a) * v, rand(0.6, 1.6), rand(6, 11), 1.3, 0.8, 0.35, 2.4, 1);
     }
     GFX.shock(P.x, P.y, 0.045, 700, 1.1);
-    G.shake = 26; G.flash = 0.55; G.aberr = 0.016; G.ts = 0.16;
+    G.shake = 26; G.flash = 0.35; G.aberr = 0.006; G.ts = 0.16;
     SFX.die();
     if (G.lives <= 0) G.overT = 2.4;
   }
@@ -483,7 +499,7 @@
     else if (P.shCool > 0) P.shCool = Math.max(0, P.shCool - dt);
     if (keys.shield && P.sh <= 0 && P.shCool <= 0) {
       P.sh = SH_T;
-      fxs.push({ kind: 1, x: P.x, y: P.y, t: 0, life: 0.4, size: 220, r: 0.4, g: 1.3, b: 1 });
+      fxs.push({ kind: 1, x: P.x, y: P.y, t: 0, life: 0.4, size: 220, r: 0.5, g: 0.55, b: 0.6 });
       SFX.shieldUp();
     }
     keys.shield = false;
@@ -501,18 +517,18 @@
       P.cool = P.rapid > 0 ? 0.085 : 0.17;
       if (P.twin > 0) { bullets.push({ x: P.x - 12, y: P.y - 22 }, { x: P.x + 12, y: P.y - 22 }); }
       else bullets.push({ x: P.x, y: P.y - 34 });
-      fxs.push({ kind: 0, x: P.x, y: P.y - 34, t: 0, life: 0.09, size: 60, r: 0.3, g: 0.8, b: 1.2 });
+      fxs.push({ kind: 0, x: P.x, y: P.y - 34, t: 0, life: 0.09, size: 44, r: 0.55, g: 0.45, b: 0.25 });
       SFX.shoot();
     }
     for (const s of [-1, 1]) // engine exhaust
-      spawnP(P.x + s * 9 + rand(-1.5, 1.5), P.y + 30, P.vx * 0.2 + rand(-12, 12), rand(180, 340), rand(0.14, 0.3), rand(8, 13), 0.25, 0.75, 1.3, 0, 0);
+      spawnP(P.x + s * 9 + rand(-1.5, 1.5), P.y + 30, P.vx * 0.2 + rand(-12, 12), rand(180, 340), rand(0.14, 0.3), rand(6, 10), 0.5, 0.3, 0.12, 0, 0);
   }
 
   function updateShots(dt) {
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
       b.y -= 980 * dt;
-      spawnP(b.x, b.y + 16, 0, 140, 0.13, 9, 0.15, 0.6, 1.1, 0, 0);
+      spawnP(b.x, b.y + 16, 0, 140, 0.1, 7, 0.2, 0.19, 0.14, 0, 0);
       let gone = b.y < -30 || bossHit(b, dt);
       for (let j = eggs.length - 1; j >= 0 && !gone; j--) {
         const g = eggs[j];
@@ -523,7 +539,7 @@
           G.combo++; G.comboT = 2.6;
           const pts = 40 * Math.min(8, 1 + ((G.combo / 3) | 0));
           addScore(pts); pops.push({ x: g.x, y: g.y, s: String(pts), t: 0, col: [0.4, 1, 0.7], sc: 1 });
-          explode(g.x, g.y, [0.4, 1, 0.7], 0.8); SFX.boom(0.8);
+          explode(g.x, g.y, [0.78, 0.88, 0.82], 0.8); SFX.boom(0.8);
         }
       }
       for (let j = enemies.length - 1; j >= 0 && !gone; j--) {
@@ -533,7 +549,7 @@
         if (dx * dx + dy * dy < rr * rr) {
           gone = true;
           if (--e.hp <= 0) killEnemy(j);
-          else { e.flash = 1; SFX.hit(); sparks(b.x, b.y, 10, 1.6, 1.8, 1.4, 320); }
+          else { e.flash = 1; SFX.hit(); sparks(b.x, b.y, 6, 0.8, 0.8, 0.75, 260); }
         } else if (T.great) { // a wing takes the shot: it is torn off and grows back
           const c = Math.cos(e.rot), s = Math.sin(e.rot);
           for (const side of [-1, 1]) {
@@ -543,8 +559,7 @@
               gone = true;
               if (side < 0) e.wl = WING_T; else e.wr = WING_T;
               addScore(20); e.flash = 0.6; SFX.hit();
-              sparks(b.x, b.y, 16, 0.5, 1.6, 0.9, 340);
-              for (let k = 0; k < 8; k++) spawnP(b.x + rand(-14, 14), b.y + rand(-10, 10), rand(-70, 70), rand(-20, 120), rand(0.6, 1.2), rand(10, 16), 0.3, 1, 0.6, 1, 0);
+              feathers(b.x, b.y, 12, T.col, 240);
               break;
             }
           }
@@ -586,7 +601,7 @@
         pows.splice(i, 1);
         if (p.kind === 'twin') P.twin = 14; else P.rapid = 12;
         const c = POWS[p.kind].col;
-        fxs.push({ kind: 1, x: P.x, y: P.y, t: 0, life: 0.5, size: 240, r: c[0], g: c[1], b: c[2] });
+        fxs.push({ kind: 1, x: P.x, y: P.y, t: 0, life: 0.5, size: 240, r: c[0] * 0.5, g: c[1] * 0.5, b: c[2] * 0.5 });
         pops.push({ x: P.x, y: P.y - 40, s: '+', t: 0, col: c, sc: 1.6 });
         addScore(100); SFX.power();
       }
@@ -633,7 +648,7 @@
     fxv.hue += (G.hueT - fxv.hue) * Math.min(1, rdt * 0.9);
     G.shake *= Math.exp(-rdt * 7); G.aberr *= Math.exp(-rdt * 5); G.flash *= Math.exp(-rdt * 6);
     fxv.shx = (Math.random() - 0.5) * 2 * G.shake; fxv.shy = (Math.random() - 0.5) * 2 * G.shake;
-    fxv.aberr = 0.0012 + G.aberr + G.warp * 0.006; fxv.flash = G.flash;
+    fxv.aberr = 0.0004 + G.aberr + G.warp * 0.002; fxv.flash = G.flash;
 
     if (boss) updateBoss(dt);
     updateEggs(dt);
@@ -646,7 +661,7 @@
       else if (!enemies.length && !eggs.length && !boss && G.lives > 0) {
         if (G.clearT <= 0) {
           G.clearT = 2.6; addScore(500 * G.wave); SFX.wave();
-          banner(G.stage === 'boss' ? 'THE AERIE HAS FALLEN' : 'WAVE CLEARED', G.stage === 'boss' ? 'THE SKY IS YOURS, FOR NOW' : 'JUMPING TO THE NEXT SKY');
+          banner(G.stage === 'boss' ? 'THE AERIE HAS FALLEN' : 'WAVE CLEARED', G.stage === 'boss' ? 'THE SKY IS YOURS, FOR NOW' : 'THE SKY TURNS');
         } else {
           G.clearT -= dt;
           if (G.clearT <= 0) { G.wave++; G.hueT += 0.115; startStage(); }
@@ -664,29 +679,26 @@
   }
 
   /* ---------- drawing ---------- */
-  function text(str, x, y, sc, r, g, b) {
+  function text(str, x, y, sc, a) {
     const adv = 11.5 * sc; let cx = x - (str.length - 1) * adv / 2;
-    for (const ch of str) { const sp = S['g' + ch]; if (sp) Q(sp, cx, y, sp.w * sc, sp.h * sc, 0, r, g, b, 1, 1); cx += adv; }
+    for (const ch of str) { const sp = S['g' + ch]; if (sp) Q(sp, cx, y, sp.w * sc, sp.h * sc, 0, 1, 0.94, 0.8, a, 0); cx += adv; }
   }
   function drawBoss() {
-    const b = boss, gl = S.glow, t = G.time, k = 1.15 + b.flash * 1.6, cx = b.x, cy = b.y + CORE_Y;
-    Q(gl, b.x, b.y, 980, 420, 0, 0.2, 0.04, 0.26, 1, 1);
-    for (const s of [-1, 1]) { // engines, bays, turrets
-      Q(gl, b.x + s * 37, b.y - 108, 60, 80 * rand(0.8, 1.2), 0, 1.3, 0.3, 1.1, 1, 1);
-      Q(gl, b.x + s * 285, b.y + 24, 70, 36, 0, 0.2, 0.9 + 0.4 * Math.sin(t * 5), 0.5, 1, 1);
+    const b = boss, gl = S.glow, t = G.time, k = 1 + b.flash * 0.9, cx = b.x, cy = b.y + CORE_Y;
+    for (const s of [-1, 1]) { // engine exhaust at the tail, and a warm-up light on each turret
+      Q(S.flame, b.x + s * 37, b.y - 128, 16, 44 * rand(0.8, 1.2), PI, 1.0, 0.6, 0.25, 0.8, 1);
       const charge = clamp(1 - b.tur[s < 0 ? 0 : 1] / 0.6, 0, 1);
-      Q(gl, b.x + s * 215, b.y + 42, 34 + charge * 40, 34 + charge * 40, 0, 1.4, 0.7 + charge, 0.2 + charge, 1, 1);
+      if (charge > 0) Q(gl, b.x + s * 215, b.y + 42, 20 + charge * 34, 20 + charge * 34, 0, 0.9 * charge, 0.5 * charge, 0.15 * charge, 1, 1);
     }
     Q(S.aerie, b.x, b.y, 700, 240, 0, k, k, k, 1, 0);
-    // the eye in its socket
-    const o = b.open, pu = 1 + Math.sin(t * 7) * 0.06;
-    Q(gl, cx, cy, 210 * (0.45 + o * 0.7), 210 * (0.45 + o * 0.7), 0, 1.3 * (0.3 + o), 0.15, 0.35 * (0.3 + o), 1, 1);
-    Q(S.core, cx, cy, 54 * pu, 54 * pu, 0, 1.5 + b.flash * 3, 1.5 + b.flash * 3, 1.5 + b.flash * 3, 1, 0);
-    if (o < 0.98) Q(S.lid, cx, cy, 58, 58, 0, 1.2, 1.2, 1.2, 1 - o, 0);
-    // armour plates
+    // the eye in its socket, behind a shutter
+    const o = b.open, pu = 1 + Math.sin(t * 7) * 0.04, ck = 1 + b.flash * 1.2;
+    Q(S.core, cx, cy, 54 * pu, 54 * pu, 0, ck, ck, ck, 1, 0);
+    if (o < 0.98) Q(S.lid, cx, cy, 58, 58, 0, 1, 1, 1, 1 - o, 0);
+    // armour plates: bronze above, steel below
     const mid = (BW - 1) >> 1;
     for (let r = 0; r < BH; r++) {
-      const f = r / (BH - 1), pr2 = 1.5 - f * 0.4, pg2 = 0.55 + f * 0.25, pb2 = 0.3 + f * 1.3;
+      const f = r / (BH - 1), pr2 = 0.98 - f * 0.26, pg2 = 0.8 - f * 0.06, pb2 = 0.56 + f * 0.3;
       for (let c = 0; c < BW; c++) if (b.plates[r * BW + c])
         Q(S.plate, b.x + (c - mid) * PW, b.y + PY0 + r * PH, PW + 3, PH + 3, 0, pr2, pg2, pb2, 1, 0);
     }
@@ -696,25 +708,21 @@
     drawParticles();
 
     for (const p of pows) {
-      const d = POWS[p.kind], c = d.col, pu = 1 + Math.sin(p.t * 6) * 0.08;
-      Q(gl, p.x, p.y, 120, 120, 0, c[0] * 0.3, c[1] * 0.3, c[2] * 0.3, 1, 1);
-      Q(S[d.spr], p.x, p.y, 44 * pu, 44 * pu, Math.sin(p.t * 2.2) * 0.25, c[0] * 1.5, c[1] * 1.5, c[2] * 1.5, 1, 0);
+      const d = POWS[p.kind], c = d.col, pu = 1 + Math.sin(p.t * 6) * 0.06;
+      Q(S[d.spr], p.x, p.y, 44 * pu, 44 * pu, Math.sin(p.t * 2.2) * 0.25, c[0], c[1], c[2], 1, 0);
     }
     if (boss) drawBoss();
     for (const g of eggs) {
       if (g.t < 0) continue;
-      const near = g.hatch < 1.3 ? 1 - g.hatch / 1.3 : 0, k = 1.15 + near * 1.6 + g.flash * 2;
-      Q(gl, g.x, g.y, 110 + near * 60, 110 + near * 60, 0, 0.1 + near * 0.3, 0.32 + near * 0.6, 0.2 + near * 0.3, 1, 1);
+      const near = g.hatch < 1.3 ? 1 - g.hatch / 1.3 : 0, k = 1 + near * 0.3 * (0.5 + 0.5 * Math.sin(t * 30)) + g.flash;
+      Q(gl, g.x, g.y, 96, 96, 0, 0.06, 0.07, 0.07, 1, 1);
       Q(S.egg, g.x, g.y, 48, 60, g.rot, k, k, k, 1, 0);
     }
-    for (const b of bullets) {
-      Q(gl, b.x, b.y, 44, 96, 0, 0.1, 0.45, 0.85, 1, 1);
-      Q(S.bolt, b.x, b.y, 16, 48, 0, 1.2, 2.3, 2.8, 1, 1);
-    }
+    for (const b of bullets) Q(S.bolt, b.x, b.y, 16, 48, 0, 1, 1, 1, 1, 0);
     for (const e of enemies) {
       if (e.state === 'enter' && e.t < 0) continue;
-      const T = e.T, c = T.col, k = 1.25 + e.flash * 3, fr = ((t * T.flap + e.ph) | 0) & 3;
-      Q(gl, e.x, e.y, T.size * 1.9, T.size * 1.9, 0, c[0] * 0.3, c[1] * 0.3, c[2] * 0.3, 1, 1);
+      const T = e.T, k = 1 + e.flash * 1.1, fr = ((t * T.flap + e.ph) | 0) & 3;
+      Q(gl, e.x, e.y, T.size * 1.5, T.size * 1.5, 0, 0.06, 0.065, 0.08, 1, 1); // a little haze, so that dark birds stand off the sky
       if (T.great) { // wings are separate sprites, so each can be torn off and grow back
         const w = S['ravenW' + fr];
         for (const side of [-1, 1]) {
@@ -727,33 +735,30 @@
       } else Q(S[T.spr + fr], e.x, e.y, T.size, T.size, e.rot, k, k, k, 1, 0);
     }
     for (const b of ebul) {
-      const pu = 1 + Math.sin(b.t * 22) * 0.18, a = Math.atan2(b.vy, b.vx);
-      Q(gl, b.x, b.y, 54 * pu, 54 * pu, 0, 1.1, 0.22, 0.5, 1, 1);
-      Q(gl, b.x, b.y, 30, 15, a, 3, 2, 1.8, 1, 1);
+      const pu = 1 + Math.sin(b.t * 22) * 0.12;
+      Q(gl, b.x, b.y, 40, 40, 0, 0.22, 0.07, 0.04, 1, 1);
+      Q(S.pellet, b.x, b.y, 18 * pu, 18 * pu, 0, 1, 1, 1, 1, 0);
     }
     if (P.alive && G.mode === 'play') {
       const bl = P.inv > 0 ? 0.5 + 0.5 * Math.sin(t * 34) : 1, wd = 1 - Math.abs(P.tilt) * 0.2;
-      Q(gl, P.x, P.y + 4, 170, 170, 0, 0.06, 0.24, 0.42, 1, 1);
-      for (const s of [-1, 1]) Q(S.flame, P.x + s * 9 * wd, P.y + 46, 15, 46 * rand(0.75, 1.25), 0, 0.6, 1.5, 2.4, bl, 1);
-      Q(S.ship, P.x, P.y, 76 * wd, 76, P.tilt * 0.2, 1.25, 1.25, 1.25, bl, 0);
-      if (Math.sin(t * 9) > 0.6) for (const s of [-1, 1]) Q(gl, P.x + s * 28 * wd, P.y + 20, 22, 22, 0, s < 0 ? 2 : 0.2, s < 0 ? 0.3 : 2, 0.6, 1, 1);
+      for (const s of [-1, 1]) Q(S.flame, P.x + s * 9 * wd, P.y + 44, 12, 38 * rand(0.75, 1.25), 0, 1.0, 0.62, 0.26, bl * 0.9, 1);
+      Q(S.ship, P.x, P.y, 76 * wd, 76, P.tilt * 0.2, 1, 1, 1, bl, 0);
+      if (Math.sin(t * 9) > 0.6) for (const s of [-1, 1]) Q(gl, P.x + s * 28 * wd, P.y + 20, 14, 14, 0, s < 0 ? 0.9 : 0.1, s < 0 ? 0.15 : 0.8, 0.2, 1, 1);
       if (P.sh > 0) {
         const fade = P.sh < 0.45 ? 0.45 + 0.55 * Math.abs(Math.sin(t * 26)) : 1, z = 112 + Math.sin(t * 9) * 5;
-        Q(gl, P.x, P.y, 230, 230, 0, 0.1 * fade, 0.5 * fade, 0.4 * fade, 1, 1);
-        Q(S.shield, P.x, P.y, z, z, t * 1.6, 0.45 * fade, 1.9 * fade, 1.3 * fade, 1, 1);
-        Q(S.shield, P.x, P.y, z * 0.9, z * 0.9, -t * 2.3, 0.3 * fade, 1.0 * fade, 1.2 * fade, 1, 1);
+        Q(gl, P.x, P.y, 200, 200, 0, 0.05 * fade, 0.06 * fade, 0.07 * fade, 1, 1);
+        Q(S.shield, P.x, P.y, z, z, t * 1.6, 0.6 * fade, 0.68 * fade, 0.76 * fade, 1, 1);
+        Q(S.shield, P.x, P.y, z * 0.9, z * 0.9, -t * 2.3, 0.36 * fade, 0.4 * fade, 0.46 * fade, 1, 1);
       }
     }
     for (const f of fxs) {
       const u = f.t / f.life, a = (1 - u) * (1 - u);
-      if (f.kind === 0) { const z = f.size * (0.5 + u * 0.8), k = a * 1.7; Q(gl, f.x, f.y, z, z, 0, (f.r * 0.6 + 0.55) * k, (f.g * 0.6 + 0.55) * k, (f.b * 0.6 + 0.55) * k, 1, 1); }
-      else if (f.kind === 1) { const z = f.size * (0.2 + 0.95 * (1 - (1 - u) * (1 - u))), k = a * 1.6; Q(S.ring, f.x, f.y, z, z, 0, f.r * k, f.g * k, f.b * k, 1, 1); }
-      else { const k = a * 1.3; Q(gl, f.x, f.y, f.size * (0.6 + u), 11 * (1 - u), 0, (f.r + 0.4) * k, (f.g + 0.4) * k, (f.b + 0.4) * k, 1, 1); }
+      if (f.kind === 0) { const z = f.size * (0.5 + u * 0.8); Q(gl, f.x, f.y, z, z, 0, f.r * a, f.g * a, f.b * a, 1, 1); }
+      else { const z = f.size * (0.2 + 0.95 * (1 - (1 - u) * (1 - u))), k = a * 0.9; Q(S.ring, f.x, f.y, z, z, 0, f.r * k, f.g * k, f.b * k, 1, 1); }
     }
     for (const p of pops) {
       if (p.t < 0) continue;
-      const a = Math.min(1, (0.9 - p.t) * 3) * 1.5, sc = p.sc * (1 + Math.max(0, 0.12 - p.t) * 4);
-      text(p.s, p.x, p.y, sc, (p.col[0] * 0.6 + 0.5) * a, (p.col[1] * 0.6 + 0.5) * a, (p.col[2] * 0.6 + 0.5) * a);
+      text(p.s, p.x, p.y, p.sc * (1 + Math.max(0, 0.12 - p.t) * 4), Math.min(1, (0.9 - p.t) * 3));
     }
   }
 

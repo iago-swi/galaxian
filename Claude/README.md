@@ -13,11 +13,11 @@ image or audio files and no libraries.
 The version number is shown on the title screen. The [changelog](CHANGELOG.md) lists
 what changed in each version.
 
-![Nightflock on wave 4: the Aerie, a ship shaped like a great bird, fills the top of the screen. Its red eye is open, two gaps are shot into the armour below it, three shots rise from the player's ship and two escorts dive.](screenshot.jpg)
+![Nightflock on wave 4, at dusk: the Aerie, a steel ship shaped like a great bird, fills the top of the screen beside a pale moon. Its amber eye is open, two gaps are shot into the armour below it, three shots rise from the player's ship and three escorts fly below.](screenshot.jpg)
 
-![Wave 2: three eggs with glowing veins drift across the screen among three great ravens, two of which have lost a wing.](screenshot-brood.jpg)
+![Wave 2: three pale, speckled eggs drift across the dusk sky among three blue-black great ravens, and a wing has been shot off.](screenshot-brood.jpg)
 
-![The title screen: a flock in formation above the word Nightflock, over a violet nebula and the edge of a planet.](screenshot-title.jpg)
+![The title screen: a flock in formation in front of the moon, above the word Nightflock in italic serif type, over a dusk sky and a silhouette of hills, poles and wires.](screenshot-title.jpg)
 
 ## Run it
 
@@ -105,7 +105,7 @@ in the browser.
 | Language | Plain JavaScript (ES2020) in classic scripts, no framework. |
 | Rendering | WebGL 2 (GLSL ES 3.00) for the whole scene and post-processing. HTML and CSS for the score bar, banners and screens. |
 | Sound | Web Audio API. Every sound is synthesized; there are no audio files. |
-| Type | Syncopate and Chakra Petch from Google Fonts, with system fallbacks. |
+| Type | Playfair Display and Spectral from Google Fonts, with system fallbacks. |
 | Storage | `localStorage` only: `nightflock.best` (the best score). |
 | Version | Written once, in `index.html` (the line shown on the title screen). Each version has a section in [CHANGELOG.md](CHANGELOG.md), a tag `nightflock-v…` and a release on GitHub; the rules are in [VERSIONING.md](../VERSIONING.md). |
 | Requirements | A browser with WebGL 2. `EXT_color_buffer_float` is used for HDR render targets when present; otherwise the game falls back to 8-bit targets. |
@@ -138,10 +138,12 @@ routine shrinks the wingspan by 22 to 32% and sweeps the tips back. Each species
 beats at its own rate, from 6.5 frames per second for the raven to 13 for the
 swallow.
 
-Bodies and wings are nearly black and opaque. The wing fill stays dark for the inner
-62 to 78% of the span and fades to color only at the tips; the outline is a thin
-bright stroke. A soft glow in the species color is drawn behind each bird, and the
-dark body blocks it, which gives the backlit silhouette.
+The look is that of a naturalist's plate: natural colors, a dark ink outline, thin
+ink lines for the feathers, and no glow. Each species has two colors, one for the
+body and the inner wing and one for the tips of the wings and tail: slate blue for
+the swallow, white with black tips for the gull, brown for the falcon and blue-black
+for the raven, which keeps its red eyes. A faint pale haze is drawn behind each bird,
+so that the dark ones stand off the dark sky.
 
 The great raven is stored in pieces: its body, and one wing. The game draws the wing
 twice, once mirrored, so that each side can be left out when it is shot off. A wing
@@ -180,7 +182,7 @@ formation.
 A brood is six eggs in the first cycle and two more in each later cycle, up to
 twelve. An egg moves on a sine curve across the width of the screen while bobbing up
 and down. The first egg hatches after 4 to 5 seconds and each further egg about a
-second later; an egg shakes and glows for the last 1.3 seconds. Touching an egg
+second later; an egg shakes and flickers for the last 1.3 seconds. Touching an egg
 costs a ship.
 
 A great raven does not hold a slot. It steers toward a target point with a velocity
@@ -248,27 +250,30 @@ Everything on the playfield is a textured quad from the atlas. Up to 14,000 quad
 written into one vertex buffer and drawn with a single call, in painter's order.
 Blending is premultiplied (`ONE, ONE_MINUS_SRC_ALPHA`) and each quad carries an
 "additive" value that scales its alpha: with alpha 0 a quad adds light, with alpha 1
-it covers what is behind. Glows, sparks and the dark body of a bird go through the
-same draw call. A quad with a negative width is drawn mirrored, which is how one wing
+it covers what is behind. Haze, sparks, feathers and birds go through the same draw
+call. A quad with a negative width is drawn mirrored, which is how one wing
 sprite serves both sides of a raven.
 
 Each frame runs these passes:
 
-1. **Nebula**, at half resolution. Five-octave value noise, domain-warped twice, and
-   colored from a cosine palette. One hue number shifts the palette from wave to
-   wave.
-2. **Background**, at full resolution. The nebula, three layers of stars that scroll
-   at different speeds, and the limb of a planet with banded clouds and a glowing
-   atmosphere. Between waves the stars stretch into streaks.
+1. **Sky**, at half resolution. A dusk gradient from slate blue to the last light on
+   the horizon, a few faint stars, a pale moon, and clouds made of five-octave value
+   noise that drift sideways and are lit from below. One hue number tints the
+   horizon light and shifts from wave to wave. Between waves the clouds race.
+2. **Background**, at full resolution. The sky, plus a crisp silhouette along the
+   bottom: a distant ridge, hills with a few lit windows, telephone poles, sagging
+   wires and birds perched on them.
 3. **Sprites**, into the same target, a 16-bit float texture where colors may be
    brighter than white.
-4. **Bloom.** A soft threshold (0.62), then six levels of downsampling and additive
-   upsampling.
+4. **Bloom.** A soft threshold (0.8), then six levels of downsampling and additive
+   upsampling. In this look little reaches the threshold: fire, sparks and exhaust.
 5. **Final grade.** Up to eight shockwave distortions, chromatic aberration, a
    vignette, the ACES tone curve and film grain.
 
 Particles live in a ring buffer of 6000 entries, stored as typed arrays. A spark is
-drawn as the soft glow sprite stretched along its velocity.
+drawn as the soft dot sprite stretched along its velocity. A feather is drawn opaque,
+tinted in the color of its bird, and it spins and sinks. A bird that is hit bursts
+into feathers; the ship and the Aerie burn.
 
 When a ship is lost, time slows to 16% and recovers over about a second, a large
 shockwave bends the picture, and the color channels split for a moment.
@@ -316,6 +321,8 @@ script that fires and moves from side to side; a brood wave, with eggs hatching 
 wings shot off; the Aerie, where every hit on the eye was confirmed to land while it
 was open; the shield going from ready to active to recharging and back; and the
 sequence of waves 4 to 7, which runs through the end of one cycle and into the next.
+The look of version 2.1.0 was checked on the title screen and on waves 1, 2 and 4;
+the storm wave, which uses the same birds as the flock, was not run again.
 On an Intel Arc 140V graphics chip at 1280 × 800 it ran at a steady 120 frames per
 second. The screenshots were taken from such runs; for the first one the script moved
 the ship and set the score.

@@ -2,7 +2,7 @@
 /* ---------------------------------------------------------------------------
    GFX — tiny WebGL2 renderer.
    Pipeline per frame:
-     nebula (half-res) -> background (stars, planet) -> sprite batch (HDR)
+     dusk sky (half-res) -> background (horizon silhouette) -> sprite batch (HDR)
      -> bloom (prefilter, downsample chain, upsample chain)
      -> final composite (shockwaves, chromatic aberration, vignette, tonemap, grain)
 --------------------------------------------------------------------------- */
@@ -40,60 +40,84 @@ void main(){
   vUv = p; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
-  // Domain-warped fbm nebula, rendered at half resolution (it is smooth anyway).
+  // Dusk sky, rendered at half resolution (it is soft anyway): gradient, stars, moon, drifting clouds.
   const FS_NEB = HEAD + NOISE + `
 out vec4 o;
 uniform vec2 uRes; uniform float uTime, uScroll, uHue;
 void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
-  vec2 p = uv * 1.55 + vec2(0.0, uScroll * 0.022);
-  vec2 q = vec2(fbm(p + vec2(0.0, uTime * 0.02)), fbm(p + vec2(5.2, 1.3)));
-  vec2 r = vec2(fbm(p + 2.1 * q + vec2(1.7, 9.2) + uTime * 0.012), fbm(p + 2.1 * q + vec2(8.3, 2.8)));
-  float f = fbm(p + 1.9 * r);
-  vec3 c1 = pal(uHue + 0.30), c2 = pal(uHue + 0.14), c3 = pal(uHue + 0.50);
-  vec3 col = mix(vec3(0.008, 0.012, 0.035), c1 * 0.5, smoothstep(0.22, 0.8, f));
-  col = mix(col, c2 * 0.7, smoothstep(0.38, 0.9, length(q)) * smoothstep(0.2, 0.7, f));
-  col += c3 * 1.0 * pow(r.x, 2.0) * f * smoothstep(0.35, 0.75, r.y);
-  col *= smoothstep(0.14, 0.58, f) * 0.94 + 0.06;
-  col += mix(c2, vec3(1.0), 0.35) * pow(f, 5.0) * 1.1;
-  o = vec4(col * 0.8, 1.0);
+  float h = uv.y + 0.5;
+  vec3 tint = pal(uHue + 0.92);
+  vec3 ember = mix(vec3(0.55, 0.38, 0.28), tint, 0.4) * 0.5;         // the last light on the horizon
+  vec3 slate = mix(vec3(0.075, 0.095, 0.125), tint * 0.1, 0.2);
+  vec3 col = mix(slate, vec3(0.020, 0.030, 0.056), smoothstep(0.3, 1.0, h));
+  col = mix(col, ember, pow(clamp(1.0 - h, 0.0, 1.0), 2.6) * 0.85);
+  // a few faint stars high up
+  vec2 g = uv * 44.0, id = floor(g), f = fract(g); float r = hash(id + 3.0);
+  if (r > 0.92) {
+    vec2 q = f - (vec2(hash(id + 5.1), hash(id + 9.7)) * 0.6 + 0.2);
+    col += vec3(0.8, 0.85, 1.0) * exp(-dot(q, q) * 500.0) * (0.3 + 0.2 * sin(uTime * (1.0 + r * 3.0) + r * 80.0)) * smoothstep(0.45, 0.9, h);
+  }
+  // a pale moon
+  vec2 mp = uv - vec2(0.27, 0.31); float md = length(mp);
+  if (md < 0.06) {
+    float lit = smoothstep(-0.05, 0.035, dot(mp, normalize(vec2(-0.55, 0.6))));
+    vec3 moon = vec3(0.62, 0.63, 0.58) * (0.7 + 0.3 * fbm(mp * 36.0 + 4.0)) * (0.25 + 0.75 * lit);
+    col = mix(col, moon, smoothstep(0.05, 0.046, md));
+  }
+  col += vec3(0.5, 0.55, 0.6) * 0.07 * exp(-max(md - 0.046, 0.0) * 14.0);
+  // clouds: wide and flat, drifting sideways, lit from below by the horizon
+  vec2 p = vec2(uv.x * 1.25 + uScroll * 0.012, uv.y * 3.4);
+  vec2 w = vec2(fbm(p * 0.7 + 3.1), fbm(p * 0.7 + vec2(7.7, 1.9))) * 0.7;
+  float c1 = fbm(p + w + vec2(0.0, uTime * 0.003));
+  float c2 = fbm(p + w + vec2(0.0, uTime * 0.003 - 0.16));
+  float cover = smoothstep(0.36, 0.64, c1) * smoothstep(0.03, 0.28, h);
+  vec3 cloud = mix(vec3(0.052, 0.062, 0.082), ember * 0.95 + 0.02, pow(clamp(1.0 - h, 0.0, 1.0), 1.6));
+  cloud *= 1.0 + clamp((c1 - c2) * 8.0, -0.6, 1.3);
+  col = mix(col, cloud, cover * 0.88);
+  o = vec4(col, 1.0);
 }`;
 
+  // Full resolution: the sky, plus a crisp silhouette along the bottom (ridge, hills, poles, wires, perched birds).
   const FS_BG = HEAD + NOISE + `
 in vec2 vUv; out vec4 o;
-uniform sampler2D uNeb; uniform vec2 uRes; uniform float uTime, uScroll, uHue, uWarp;
-vec3 stars(vec2 uv, float scale, float seed, float bright){
-  vec2 g = uv * scale, id = floor(g), f = fract(g);
-  float h = hash(id + seed);
-  if (h < 0.72) return vec3(0.0);
-  vec2 c = vec2(hash(id + seed + 3.1), hash(id + seed + 7.7)) * 0.6 + 0.2;
-  vec2 q = f - c; q.y /= (1.0 + uWarp * 5.0);
-  float d2 = dot(q, q), m = (h - 0.72) / 0.28;
-  float tw = 0.65 + 0.35 * sin(uTime * (1.5 + m * 4.0) + h * 90.0);
-  float s = exp(-d2 * (760.0 - 500.0 * m)) * (0.45 + 1.9 * m * m) + exp(-d2 * 70.0) * 0.1 * m;
-  vec3 tint = mix(vec3(0.65, 0.85, 1.0), vec3(1.0, 0.82, 0.68), hash(id + seed + 11.0));
-  return tint * s * tw * bright;
-}
+uniform sampler2D uNeb; uniform vec2 uRes;
+float wireY(float t, float y0, float sag){ return y0 - sag * 4.0 * t * (1.0 - t); }
 void main(){
   vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / uRes.y;
+  float h = uv.y + 0.5, x = uv.x, px = 1.0 / uRes.y;
   vec3 col = texture(uNeb, vUv).rgb;
-  col += stars(uv + vec2(0.0, uScroll * 0.035), 38.0, 1.0, 0.5);
-  col += stars(uv + vec2(3.0, uScroll * 0.075), 22.0, 23.0, 0.7);
-  col += stars(uv + vec2(7.0, uScroll * 0.17), 11.0, 51.0, 0.95);
-  // planet limb, lower-left
-  vec2 pc = uv - vec2(-0.66, -1.04); float R = 0.74, d = length(pc);
-  vec3 atm = pal(uHue + 0.5);
-  float lit = clamp(dot(pc / d, normalize(vec2(0.5, 0.86))) * 0.5 + 0.55, 0.0, 1.0);
-  if (d < R) {
-    vec3 n = vec3(pc / R, sqrt(max(1.0 - d * d / (R * R), 0.0)));
-    float diff = max(dot(n, normalize(vec3(0.42, 0.72, 0.22))), 0.0);
-    float bands = fbm(vec2(n.x * 2.5 + uTime * 0.006 + fbm(n.xy * 3.0) * 0.9, n.y * 9.0));
-    vec3 surf = mix(pal(uHue + 0.32) * 0.22, pal(uHue + 0.12) * 0.5, bands);
-    vec3 pcol = surf * (diff * 0.5 + 0.012);
-    pcol += atm * pow(1.0 - n.z, 2.6) * (0.12 + diff * 1.3);
-    col = mix(col, pcol, smoothstep(R, R - 0.004, d));
+  if (h < 0.22) {
+    float far = 0.088 + 0.034 * noise(vec2(x * 1.3 + 11.0, 4.0));
+    col = mix(col, col * 0.3 + vec3(0.004, 0.006, 0.010), smoothstep(far + px, far - px, h));
+    float hill = 0.048 + 0.036 * noise(vec2(x * 2.2 + 3.0, 1.5)) + 0.016 * noise(vec2(x * 7.0, 8.2));
+    float sil = smoothstep(hill + px, hill - px, h);
+    const float CELL = 0.62;
+    float xs = x + 0.31 + CELL * 0.5, lx = xs - floor(xs / CELL) * CELL - CELL * 0.5;   // distance to the nearest pole
+    sil = max(sil, step(abs(lx), 0.0032) * step(h, 0.186));
+    sil = max(sil, step(abs(lx), 0.030) * step(abs(h - 0.172), 0.0026));
+    sil = max(sil, step(abs(lx), 0.021) * step(abs(h - 0.156), 0.0024));
+    float xw = x + 0.31, wi = floor(xw / CELL), t = xw / CELL - wi;                     // t: 0 at a pole, 1 at the next
+    sil = max(sil, smoothstep(1.7 * px, 0.7 * px, abs(h - wireY(t, 0.172, 0.030))));
+    sil = max(sil, smoothstep(1.7 * px, 0.7 * px, abs(h - wireY(t, 0.156, 0.037))));
+    for (int k = 0; k < 5; k++) {   // birds perched on the upper wire
+      float fk = float(k), r = hash(vec2(wi * 3.7 + fk, 2.0));
+      if (r < 0.4) continue;
+      float tb = 0.12 + 0.76 * hash(vec2(wi + 0.5, fk * 5.3 + 1.0)), s = sign(r - 0.7);
+      vec2 d = vec2(x, h) - vec2((wi + tb) * CELL - 0.31, wireY(tb, 0.172, 0.030) + 0.0075);
+      float body = length(d / vec2(0.0052, 0.0075));
+      float head = length((d - vec2(0.0022 * s, 0.0078)) / vec2(0.0034));
+      float tail = length((d - vec2(-0.0040 * s, -0.0070)) / vec2(0.0022, 0.0058));
+      sil = max(sil, smoothstep(1.08, 0.92, min(body, min(head, tail))));
+    }
+    col = mix(col, vec3(0.004, 0.006, 0.010), sil);
+    // a few lit windows on the near hill
+    float wid = floor(x * 70.0);
+    if (hash(vec2(wid, 9.0)) > 0.86) {
+      vec2 wd = abs(vec2(x, h) - vec2((wid + 0.5) / 70.0, hill * (0.25 + 0.5 * hash(vec2(wid, 4.0)))));
+      col += vec3(0.55, 0.38, 0.16) * 0.55 * step(wd.x, 0.0022) * step(wd.y, 0.0018) * step(h, hill - 0.004);
+    }
   }
-  col += atm * exp(-max(d - R, 0.0) * 30.0) * lit * lit * 0.5 * smoothstep(R - 0.012, R, d);
   o = vec4(col, 1.0);
 }`;
 
@@ -163,12 +187,12 @@ void main(){
     }
   }
   vec2 c = uv - 0.5; float r2 = dot(c, c);
-  vec2 ab = c * (uAberr + r2 * 0.006);
+  vec2 ab = c * (uAberr + r2 * 0.002);
   vec3 col = vec3(samp(uv + ab).r, samp(uv).g, samp(uv - ab).b);
-  col += uFlash * vec3(0.55, 0.8, 1.0);
+  col += uFlash * vec3(1.0, 0.92, 0.8);
   col *= 1.0 - smoothstep(0.12, 0.95, r2 * 1.7) * 0.78;
   col = aces(col * 1.08);
-  col += (hash(gl_FragCoord.xy + fract(uTime) * 91.7) - 0.5) * 0.028;
+  col += (hash(gl_FragCoord.xy + fract(uTime) * 91.7) - 0.5) * 0.04;
   o = vec4(col, 1.0);
 }`;
 
@@ -321,8 +345,7 @@ void main(){
 
     bindT(scene); gl.useProgram(P.bg.p); u = P.bg.u;
     tex(0, neb.tex); gl.uniform1i(u.uNeb, 0);
-    gl.uniform2f(u.uRes, W, H); gl.uniform1f(u.uTime, fx.time); gl.uniform1f(u.uScroll, fx.scroll);
-    gl.uniform1f(u.uHue, fx.hue); gl.uniform1f(u.uWarp, fx.warp);
+    gl.uniform2f(u.uRes, W, H);
     tri();
 
     if (qn) {
@@ -344,7 +367,7 @@ void main(){
     if (n) {
       bindT(bloom[0]); gl.useProgram(P.pre.p); u = P.pre.u;
       tex(0, scene.tex); gl.uniform1i(u.uTex, 0); gl.uniform2f(u.uTexel, 1 / W, 1 / H);
-      gl.uniform1f(u.uThr, hdr ? 0.62 : 0.45); gl.uniform1f(u.uKnee, 0.4);
+      gl.uniform1f(u.uThr, hdr ? 0.8 : 0.55); gl.uniform1f(u.uKnee, 0.4);
       tri();
       gl.useProgram(P.down.p); u = P.down.u; gl.uniform1i(u.uTex, 0);
       for (let i = 1; i < n; i++) {
@@ -367,7 +390,7 @@ void main(){
     tex(1, n ? bloom[0].tex : scene.tex); gl.uniform1i(u.uBloom, 1);
     gl.uniform2f(u.uRes, W, H); gl.uniform1f(u.uTime, fx.time);
     gl.uniform1f(u.uAberr, fx.aberr); gl.uniform1f(u.uFlash, fx.flash);
-    gl.uniform1f(u.uBloomK, n ? (hdr ? 0.5 : 0.7) : 0);
+    gl.uniform1f(u.uBloomK, n ? (hdr ? 0.26 : 0.4) : 0);
     gl.uniform4fv(u.uShock, shockU);
     tri();
   }
