@@ -1,12 +1,13 @@
 # Phoenix
 
-A browser game inspired by the 1980 arcade game, built to compare what different AI assistants produce from the same brief. Birds dive at your ship, eggs hatch into larger birds whose wings grow back, and after a few waves a ship as wide as the screen comes down. The first version, by Claude, is here; versions by other assistants will follow, each in its own folder.
+A browser game inspired by the 1980 arcade game, built to compare what different AI assistants produce from the same brief. Birds dive at your ship, eggs hatch into larger birds whose wings grow back, and after a few waves a ship as wide as the screen comes down. Versions by Claude and Gemini are here; versions by other assistants may follow, each in its own folder.
 
 **Play it in your browser: <https://iago-swi.github.io/phoenix/>**
 
 | Version | Play | Play offline | Source and technical notes |
 | --- | --- | --- | --- |
 | Claude · Nightflock | [Play](https://iago-swi.github.io/phoenix/Claude/) | [Download the standalone game](https://raw.githubusercontent.com/iago-swi/phoenix/main/Claude/Nightflock.html) | [Claude/](Claude/) |
+| Gemini · Suncrest | [Play](https://iago-swi.github.io/phoenix/Gemini/) | [Download the standalone game](https://raw.githubusercontent.com/iago-swi/phoenix/main/Gemini/Suncrest.html) | [Gemini/](Gemini/) |
 
 To play offline, save the standalone file with the `.html` extension and open it in a browser, or download/clone this repository and open the root `index.html`, a landing page that links to every version. Each version is self-contained in its own folder, with its own README.
 
@@ -15,6 +16,12 @@ To play offline, save the standalone file with the `.html` extension and open it
 ![Nightflock on wave 4, at dusk. The Aerie, a steel ship shaped like a great bird, fills the top of the screen beside a pale moon. Its amber eye is open, two gaps are shot into the armour below it, three shots rise from the player's ship and three escorts fly below.](Claude/screenshot.jpg)
 
 Use the arrow keys or `A` and `D` to move the ship, hold **Space** to fire, and press `↓` to raise the force shield for a moment. With a mouse or on a touchscreen, press and hold: the ship follows the pointer and fires, and the right button or a second finger raises the shield. The game runs in cycles of four waves: a flock of swallows, gulls and falcons, a brood of eggs that hatch into great ravens, a second flock that attacks harder, and the Aerie, whose armour must be shot through to reach its eye. A bird shot in mid-dive scores double, and kills in quick succession build a chain that multiplies the score up to eight times. The best score is kept in the browser. Rules, scoring and technical notes are in [Claude/README.md](Claude/README.md).
+
+## Gemini version
+
+![Suncrest on Cycle 1, Stage 5 against The Sun-Ark. Over a sunlit gold-leaf woodblock sky with radiating sunbeams, a vermilion sun disc, drifting Rinpa clouds and Prussian-blue waves, the screen-wide imperial pagoda fortress descends with a breach shot through its three rows of coloured lacquer armour tiles and revolving bronze shield belt while diamond sun-lances strike its glowing solar core and Azure Swift escorts swoop below.](Gemini/screenshot.png)
+
+Use the arrow keys or `A` and `D` to steer your origami crane skiff, hold **Space** (or `↑`, `W`, `Z`) to fire sun-lances, and press `↓` (or `S`, `Shift`, `X`) to raise the **Solar Ward** force shield when ready. On a touchscreen, dedicated on-screen **◀**, **▶**, **WARD** and **FIRE** buttons appear along the bottom, or you can drag on the playfield. Each cycle plays across five sunlit woodblock stages: two diving flocks of swifts, kingfishers and kites, two broods of kintsugi porcelain eggs that hatch into Great Solar Phoenixes whose sheared wings grow back, and **The Sun-Ark**, where you shoot through three rows of lacquer armour tiles and a revolving bronze shield belt to hit the Solar Core while escorts attack. Rules, scoring and technical notes are in [Gemini/README.md](Gemini/README.md).
 
 ## Game history
 
@@ -28,6 +35,8 @@ Two things set it apart. The ship has a force field on a second button, which pr
 
 Version 1.0.0 of Nightflock was built from a brief that named *Galaxian*, and had only the diving flocks. Version 2.0.0 reworked it after *Phoenix*, the game the brief was meant to describe.
 
+*Suncrest* keeps the original five-stage cycle — two diving flocks, two egg-and-phoenix broods, and a screen-wide descending fortress with a horizontally revolving shield belt beneath its outer armour — and reimagines the whole game as a sunlit Edo woodblock and gold-leaf scroll with synthesized pentatonic koto and taiko music. Alongside the classic force shield (the Solar Ward), wing regrowth and descending citadel, it adds mid-dive score bonuses, a rapid-kill flow multiplier up to ×4, rare Twin Lance lantern drops and dedicated mobile touch controls.
+
 ## Releases
 
 Each game is numbered separately and has its own release notes. The [Releases page](https://github.com/iago-swi/phoenix/releases) lists every numbered release, with the standalone game of that release attached where there is one. The numbering rules are in [VERSIONING.md](VERSIONING.md).
@@ -35,12 +44,14 @@ Each game is numbered separately and has its own release notes. The [Releases pa
 | Game | Release notes |
 | --- | --- |
 | Nightflock | [Claude/CHANGELOG.md](Claude/CHANGELOG.md) |
+| Suncrest | [Gemini/CHANGELOG.md](Gemini/CHANGELOG.md) |
 
 ## Repository structure
 
 ```text
 phoenix/
 ├── Claude/        Nightflock: game, source, screenshots and technical notes
+├── Gemini/        Suncrest: game, source, screenshot and technical notes
 ├── index.html     Landing page that links to every version
 ├── VERSIONING.md  How the games are numbered and released
 └── README.md
