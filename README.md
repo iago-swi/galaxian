@@ -1,6 +1,6 @@
 # Phoenix
 
-A browser game inspired by the 1980 arcade game, built to compare what different AI assistants produce from the same brief. Birds dive at your ship, eggs hatch into larger birds whose wings grow back, and after a few waves a ship as wide as the screen comes down. Versions by Claude and Gemini are here; versions by other assistants may follow, each in its own folder.
+A browser game inspired by the 1980 arcade game, built to compare what different AI assistants produce from the same brief. Birds dive at your ship, eggs hatch into larger birds whose wings grow back, and after a few waves a ship as wide as the screen comes down. The versions by Claude, Gemini and ChatGPT each have their own folder.
 
 **Play it in your browser: <https://iago-swi.github.io/phoenix/>**
 
@@ -8,6 +8,7 @@ A browser game inspired by the 1980 arcade game, built to compare what different
 | --- | --- | --- | --- |
 | Claude · Nightflock | [Play](https://iago-swi.github.io/phoenix/Claude/) | [Download the standalone game](https://raw.githubusercontent.com/iago-swi/phoenix/main/Claude/Nightflock.html) | [Claude/](Claude/) |
 | Gemini · Suncrest | [Play](https://iago-swi.github.io/phoenix/Gemini/) | [Download the standalone game](https://raw.githubusercontent.com/iago-swi/phoenix/main/Gemini/Suncrest.html) | [Gemini/](Gemini/) |
+| ChatGPT · Sunspindle | [Play](https://iago-swi.github.io/phoenix/ChatGPT/) | Open `ChatGPT/index.html` in a downloaded copy | [ChatGPT/](ChatGPT/) |
 
 To play offline, save the standalone file with the `.html` extension and open it in a browser, or download/clone this repository and open the root `index.html`, a landing page that links to every version. Each version is self-contained in its own folder, with its own README.
 
@@ -23,6 +24,12 @@ Use the arrow keys or `A` and `D` to move the ship, hold **Space** to fire, and 
 
 Use the arrow keys or `A` and `D` to steer your origami crane skiff, hold **Space** (or `↑`, `W`, `Z`) to fire sun-lances, and press `↓` (or `S`, `Shift`, `X`) to raise the **Solar Ward** force shield when ready. On a touchscreen, dedicated on-screen **◀**, **▶**, **WARD** and **FIRE** buttons appear along the bottom, or you can drag on the playfield. Each cycle plays across five sunlit woodblock stages: two diving flocks of swifts, kingfishers and kites, two broods of kintsugi porcelain eggs that hatch into Great Solar Phoenixes whose sheared wings grow back, and **The Sun-Ark**, where you shoot through three rows of lacquer armour tiles and a revolving bronze shield belt to hit the Solar Core while escorts attack. Rules, scoring and technical notes are in [Gemini/README.md](Gemini/README.md).
 
+## ChatGPT version
+
+![Sunspindle during the Solar Press fight. Above a striped gold sun and blue mountains, a glowing spindle sits just right of a gap shot through three rows of brass plates. Swifts dive past the player's shots. The flight panel shows stage five, a score of 4,285 and three ships.](ChatGPT/screenshot.png)
+
+In *Sunspindle*, steer with the arrows or A and D, hold Space to fire and press Shift for the shield. A phone has separate movement, fire and shield buttons. Shoot the metal swifts as they dive, break the eggs before they hatch or aim between a kite’s regenerating wings. Every fifth stage brings the Solar Press. Cut through the brass plates and follow its spindle along the rail after each hit. [Controls, scoring and technical notes](ChatGPT/README.md).
+
 ## Game history
 
 *Phoenix* reached arcades at the end of 1980: Taito released it in Japan in December, and Centuri, under license from Amstar Electronics, in North America in January 1981. Who wrote it is not known for certain, because the credits were overwritten by the companies that held the rights. [Wikipedia](https://en.wikipedia.org/wiki/Phoenix_(1980_video_game))
@@ -37,6 +44,8 @@ Version 1.0.0 of Nightflock was built from a brief that named *Galaxian*, and ha
 
 *Suncrest* keeps the original five-stage cycle — two diving flocks, two egg-and-phoenix broods, and a screen-wide descending fortress with a horizontally revolving shield belt beneath its outer armour — and reimagines the whole game as a sunlit Edo woodblock and gold-leaf scroll with synthesized pentatonic koto and taiko music. Alongside the classic force shield (the Solar Ward), wing regrowth and descending citadel, it adds mid-dive score bonuses, a rapid-kill flow multiplier up to ×4, rare Twin Lance lantern drops and dedicated mobile touch controls.
 
+*Sunspindle* keeps the original five-stage order and its choice between breaking an egg early and taking on a larger bird. Its blue mountains and folded-metal birds are drawn like a screen print. The fortress carries its vulnerable spindle on a rail. Each hit sends it behind a different stack of armour, so a single opening seldom lasts the fight.
+
 ## Releases
 
 Each game is numbered separately and has its own release notes. The [Releases page](https://github.com/iago-swi/phoenix/releases) lists every numbered release, with the standalone game of that release attached where there is one. The numbering rules are in [VERSIONING.md](VERSIONING.md).
@@ -45,6 +54,7 @@ Each game is numbered separately and has its own release notes. The [Releases pa
 | --- | --- |
 | Nightflock | [Claude/CHANGELOG.md](Claude/CHANGELOG.md) |
 | Suncrest | [Gemini/CHANGELOG.md](Gemini/CHANGELOG.md) |
+| Sunspindle | [ChatGPT/CHANGELOG.md](ChatGPT/CHANGELOG.md) |
 
 ## Repository structure
 
@@ -52,6 +62,7 @@ Each game is numbered separately and has its own release notes. The [Releases pa
 phoenix/
 ├── Claude/        Nightflock: game, source, screenshots and technical notes
 ├── Gemini/        Suncrest: game, source, screenshot and technical notes
+├── ChatGPT/       Sunspindle: game, source, screenshot and technical notes
 ├── index.html     Landing page that links to every version
 ├── VERSIONING.md  How the games are numbered and released
 └── README.md
