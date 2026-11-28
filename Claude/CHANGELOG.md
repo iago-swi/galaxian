@@ -6,6 +6,27 @@ on the game's title screen. Each version is also a
 standalone game of that version attached. The numbering rules are in
 [VERSIONING.md](../VERSIONING.md).
 
+## 2.1.0 (2026-11-28)
+
+A new look. The neon and the glow are gone, and the game no longer takes place in
+space. Nothing about how it plays has changed.
+
+### Changed
+
+- The backdrop is a sky at dusk, with drifting clouds, a pale moon and, along the
+  bottom, hills, telephone poles and wires with birds perched on them. The light on
+  the horizon changes from wave to wave.
+- The birds are drawn like the plates of a field guide, in natural colors with an ink
+  outline: slate-blue swallows, white gulls with black wing tips, brown falcons and
+  blue-black ravens with red eyes.
+- Eggs are pale green and speckled.
+- Your ship is painted steel with red stripes. The Aerie is a steel bird with riveted
+  armour and an amber eye behind a shutter.
+- Your shots are pale bars, and the birds drop red pellets.
+- A bird that is hit bursts into feathers. Only your ship and the Aerie burn.
+- Scores and messages are set in serif type, in cream and amber. The game-over screen
+  now reads "The sky is theirs".
+
 ## 2.0.0 (2026-11-27)
 
 The game is reworked after the 1980 arcade game *Phoenix*. It now runs in cycles of
